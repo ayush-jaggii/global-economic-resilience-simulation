@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adhikshana Host Console</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body style="display: block; overflow-y: auto; padding: 3rem; background: var(--bg-main);">
+    <div id="toast-container"></div>
+    <div class="timer-bar-container"><div id="timer-bar" class="timer-bar-fill"></div></div>
+
+    <div id="host-content" style="display: none; max-width: 1400px; margin: 0 auto;">
+        <header class="flex-row justify-between align-center m-b-2">
+            <div>
+                <h1 style="font-size: 2.8rem; color: var(--primary); font-weight: 800; letter-spacing: -1px;">Host Operations</h1>
+                <p class="small-label" style="font-size: 1rem; opacity: 0.6;">MARKET CHAOS EXCHANGE | CONTROL CENTER</p>
+            </div>
+            <div id="countdown-label" class="big-num" style="font-size: 4.5rem; font-family: 'JetBrains Mono', monospace;">00:00</div>
+        </header>
+
+        <div class="grid" style="display: grid; grid-template-columns: 2.2fr 0.8fr; gap: 3rem; margin-top: 2rem;">
+            <section class="flex-col" style="gap: 2rem;">
+                <!-- PHASE CONTROL -->
+                <div class="surface" id="phase-panel" style="padding: 3rem; border-top: 6px solid var(--primary); background: rgba(59,130,246,0.05);">
+                    <div class="flex-row justify-between align-center">
+                        <div>
+                            <p id="waiting-label" class="small-label" style="color: var(--negative); font-size: 1.2rem; margin-bottom: 0.5rem; display: none;">PENDING INITIALIZATION</p>
+                            <p id="ended-label" class="small-label" style="color: var(--warning); font-size: 1.2rem; margin-bottom: 0.5rem; display: none;">MARKET SESSION CLOSED</p>
+                            <h2 id="phase-display" style="font-size: 1.8rem; letter-spacing: 0.2rem; font-weight: 800;">--- • ROUND -</h2>
+                        </div>
+                        <div class="flex-row" style="gap: 1rem;">
+                            <button id="start-btn" onclick="startGame()" class="btn btn-red" style="padding: 1.25rem 3rem; font-size: 1.1rem; border-radius: 8px; font-weight: 900; letter-spacing: 0.1em; display: none;">START SESSION</button>
+                            <div id="active-controls" class="flex-row" style="gap: 1rem; display: none;">
+                                <button id="pause-btn" class="btn" style="padding: 1.25rem 3rem; font-size: 1.1rem; border-radius: 8px;">PAUSE SYSTEM</button>
+                                <button id="skip-btn" class="btn btn-outline" style="padding: 1.25rem 2.5rem; font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">FORCE SKIP</button>
+                            </div>
+                            <button id="reset-after-end-btn" onclick="resetGame()" class="btn" style="padding: 1.25rem 2.5rem; font-size: 1.1rem; border-radius: 8px; font-weight: 900; display: none; background: var(--warning); color:#111;">START NEW SIMULATION</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GLOBAL UTILITIES -->
+                <div class="surface" style="padding: 2.5rem; border-bottom: 4px solid var(--secondary);">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.8; letter-spacing: 0.1em;">CONTROL_OVERRIDE & BROADCAST</h2>
+                    <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div class="flex-col" style="gap: 1rem;">
+                            <label class="small-label" style="color: var(--text-secondary);">TIMER OVERRIDE (SECONDS)</label>
+                            <div class="flex-row" style="gap: 0.5rem;">
+                                <input type="number" id="timer-val" value="60" class="host-input" style="flex:1; padding: 1rem; font-size: 1.1rem; font-weight: 800;">
+                                <button onclick="setTimer()" class="btn btn-outline" style="padding: 1rem 1.5rem;">UPDATE</button>
+                            </div>
+                        </div>
+                        <div class="flex-col" style="gap: 1rem;">
+                            <label class="small-label" style="color: var(--text-secondary);">SYSTEM_MESSAGE_ALL</label>
+                            <div class="flex-row" style="gap: 0.5rem;">
+                                <input type="text" id="host-msg" placeholder="ENTER MESSAGE..." class="host-input" style="flex:1; padding: 1rem; font-size: 1rem; font-weight: 700;">
+                                <button onclick="sendMsg()" class="btn btn-outline" style="padding: 1rem 1.5rem;">SHOUT</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TEAM REGISTRY -->
+                <div class="surface" style="padding: 2.5rem;">
+                    <h2 style="font-size: 1.5rem; margin-bottom: 2rem; opacity: 0.8; letter-spacing: 0.1em;">TEAM REGISTRY & ENTITY ACCESS</h2>
+                    <table class="market-list" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th class="small-label" style="text-align: left;">ENTITY IDENTITY</th>
+                                <th class="small-label" style="text-align: left;">ACCESS_KEY</th>
+                                <th class="small-label" style="text-align: right;">AVAIL CASH</th>
+                                <th class="small-label" style="text-align: center;">CONTROL</th>
+                                <th class="small-label" style="text-align: center;">STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="team-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <aside class="flex-col" style="gap: 2rem;">
+                <!-- NAVIGATION -->
+                <div class="surface" style="padding: 2.5rem; border-bottom: 4px solid var(--highlight);">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 2.5rem; opacity: 0.8;">JUMP TO SEQUENCE</h2>
+                    <div id="jump-grid" class="grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;"></div>
+                </div>
+
+                <!-- ASSET CONTROL -->
+                <div class="surface" style="padding: 2.5rem; border-bottom: 4px solid var(--highlight);">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 2.5rem; opacity: 0.8; letter-spacing: 0.1em;">ASSET_REASSIGNMENT_CORE</h2>
+                    <div class="grid" style="display: grid; grid-template-columns: 1.5fr 1.5fr 1fr; gap: 1rem;">
+                        <select id="asset-selector-assign" class="host-input" style="padding: 0.8rem; font-weight: 700;"></select>
+                        <select id="team-selector-assign" class="host-input" style="padding: 0.8rem; font-weight: 700;"></select>
+                        <div class="flex-row" style="gap: 0.5rem;">
+                            <button onclick="btnAssignAsset()" class="btn" style="flex:1; font-weight: 900;">GRANT</button>
+                            <button onclick="btnRemoveAsset()" class="btn btn-red" style="flex:1; font-weight: 900;">STRIP</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AUDIT -->
+                <div class="surface" style="flex: 1; display: flex; flex-direction: column; padding: 2.5rem; max-height: 600px;">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem; opacity: 0.8;">AUDIT TRAIL</h2>
+                    <div id="event-logs" class="log-stream" style="flex: 1; overflow-y: auto; font-family: 'JetBrains Mono', monospace;"></div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" style="position: fixed; inset: 0; background: var(--bg-main); z-index: 5000; display: flex; align-items: center; justify-content: center;">
+        <div class="surface" style="width: 400px; text-align: center; padding: 4rem; border: 1px solid var(--primary);">
+            <p class="small-label" style="margin-bottom: 1.5rem; opacity: 0.6;">MODERATOR SECURE LOGON</p>
+            <h1 style="font-size: 2.5rem; margin-bottom: 2.5rem; letter-spacing: -1px;">HOST_NET_V2</h1>
+            <input type="password" id="pass-input" placeholder="HOST_SECURITY_KEY" style="padding: 1.25rem; margin-bottom: 2rem; width: 100%; background: #000; border: 1px solid var(--border-subtle); color: white; border-radius: 8px; text-align: center; font-size: 1rem;">
+            <button id="login-btn" class="btn" style="width: 100%; padding: 1.5rem; font-size: 1.1rem; border-radius: 8px;">ESTABLISH CONTEXT</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.getElementById('login-btn').onclick = () => {
+            const password = document.getElementById('pass-input').value;
+            localStorage.setItem('sim_auth', JSON.stringify({ role: 'host', password }));
+            socket.send(JSON.stringify({ type: 'AUTH', role: 'host', password }));
+        };
+
+        const startGame = () => {
+            if (confirm("⚠️ SYSTEM BROADCAST: Ready to initialize session 3.0?")) {
+                socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'START_GAME' }));
+            }
+        };
+
+        const resetGame = () => {
+            if (confirm("⚠️ START NEW SIMULATION: This will wipe current standings and restart waiting state. Continue?")) {
+                socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'RESET' }));
+            }
+        };
+
+        const jumpRound = (r) => {
+            if (confirm(`⚠️ SEQUENCE JUMP: Transition to Round ${r}?`)) {
+                socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'JUMP_ROUND', payload: { round: r } }));
+            }
+        };
+
+        const setTimer = () => {
+            const val = parseInt(document.getElementById('timer-val').value);
+            if (isNaN(val)) return;
+            if (confirm(`⚠️ KRONOS OVERRIDE: Set remaining time to ${val}s?`)) {
+                socket.send(JSON.stringify({ type: 'HOST_SET_TIMER', payload: { remainingSeconds: val } }));
+            }
+        };
+
+        const sendMsg = () => {
+            const input = document.getElementById('host-msg');
+            const msg = input.value.trim();
+            if (!msg) return;
+            socket.send(JSON.stringify({ type: 'HOST_MESSAGE', payload: { message: msg, target: 'all' } }));
+            input.value = '';
+        };
+
+        const promptAdjust = (tId) => {
+            const val = prompt("Enter adjustment amount (e.g., 0.5 to add, -1.2 to deduct):");
+            if (val && !isNaN(parseFloat(val))) {
+                adjustCash(tId, parseFloat(val));
+            }
+        };
+
+        const adjustCash = (tId, amt) => {
+            socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'ADJUST_CASH', payload: { teamId: tId, amount: amt } }));
+        };
+
+        document.getElementById('pause-btn').onclick = () => socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'PAUSE' }));
+        document.getElementById('skip-btn').onclick = () => { 
+            if(confirm("⚠️ SYSTEM OVERRIDE: Abort current sequence?")) 
+                socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'SKIP' })); 
+        };
+        const assignAsset = (assetId, teamId) => {
+            if (confirm(`⚠️ ASSET ASSIGNMENT: Force assign ${assetId} to ${teamId}?`)) {
+                socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'ASSIGN_ASSET', payload: { assetId, teamId } }));
+            }
+        };
+
+        const removeAsset = (assetId) => {
+            if (confirm(`⚠️ ASSET DE-REGISTRATION: Remove manual ownership of ${assetId}?`)) {
+                socket.send(JSON.stringify({ type: 'ADMIN_ACTION', action: 'REMOVE_ASSET', payload: { assetId } }));
+            }
+        };
+
+        const btnAssignAsset = () => {
+            const assetId = document.getElementById('asset-selector-assign').value;
+            const teamId = document.getElementById('team-selector-assign').value;
+            if (assetId && teamId) assignAsset(assetId, teamId);
+        };
+
+        const btnRemoveAsset = () => {
+            const assetId = document.getElementById('asset-selector-assign').value;
+            if (assetId) removeAsset(assetId);
+        };
+
+        const updateTeam = (teamId) => {
+            const nameEl = document.getElementById(`name-input-${teamId}`);
+            const passEl = document.getElementById(`pass-input-${teamId}`);
+            if(!nameEl || !passEl) return;
+            const name = nameEl.value;
+            const password = passEl.value;
+
+            if (!name || !password) {
+                showToast("Name and password required");
+                return;
+            }
+
+            if (!confirm(`Update credentials for ${teamId.toUpperCase()}?`)) return;
+
+            socket.send(JSON.stringify({
+                type: "HOST_UPDATE_TEAM",
+                payload: { teamId, name, password }
+            }));
+        };
+
+        updateUI = () => {
+            const overlay = document.getElementById('login-overlay');
+            if (role === 'host' && gameState) {
+                if (overlay) overlay.style.display = 'none';
+                document.getElementById('host-content').style.display = 'block';
+            } else {
+                if (overlay) overlay.style.display = 'flex';
+                document.getElementById('host-content').style.display = 'none';
+                return;
+            }
+
+            try {
+                // Pre-game check
+                const startBtn = document.getElementById('start-btn');
+                const controls = document.getElementById('active-controls');
+                const waitingLbl = document.getElementById('waiting-label');
+                const endedLbl = document.getElementById('ended-label');
+                const resetAfterEndBtn = document.getElementById('reset-after-end-btn');
+                const panel = document.getElementById('phase-panel');
+
+                if (gameState.isEnded) {
+                    if (startBtn) startBtn.style.display = 'none';
+                    if (controls) controls.style.display = 'none';
+                    if (waitingLbl) waitingLbl.style.display = 'none';
+                    if (endedLbl) endedLbl.style.display = 'block';
+                    if (resetAfterEndBtn) resetAfterEndBtn.style.display = 'block';
+                    if (panel) panel.style.borderTopColor = 'var(--warning)';
+                } else if (!gameState.isGameStarted) {
+                    if (startBtn) startBtn.style.display = 'block';
+                    if (controls) controls.style.display = 'none';
+                    if (waitingLbl) waitingLbl.style.display = 'block';
+                    if (endedLbl) endedLbl.style.display = 'none';
+                    if (resetAfterEndBtn) resetAfterEndBtn.style.display = 'none';
+                    if (panel) panel.style.borderTopColor = 'var(--negative)';
+                } else {
+                    if (startBtn) startBtn.style.display = 'none';
+                    if (controls) controls.style.display = 'flex';
+                    if (waitingLbl) waitingLbl.style.display = 'none';
+                    if (endedLbl) endedLbl.style.display = 'none';
+                    if (resetAfterEndBtn) resetAfterEndBtn.style.display = 'none';
+                    if (panel) panel.style.borderTopColor = 'var(--primary)';
+                }
+
+                const phaseEl = document.getElementById('phase-display');
+                if (phaseEl) phaseEl.innerText = `${gameState.phase.toUpperCase()} • ROUND ${gameState.round}`;
+                
+                const pBtn = document.getElementById('pause-btn');
+                if (pBtn) {
+                    pBtn.innerText = gameState.isPaused ? 'RESUME SYSTEM' : 'PAUSE SYSTEM';
+                    pBtn.style.background = gameState.isPaused ? 'var(--positive)' : 'var(--warning)';
+                }
+
+                const table = document.getElementById('team-table-body');
+                if (table && gameState.teams) {
+                    table.innerHTML = Object.values(gameState.teams).map(t => {
+                        const avail = Number.isFinite(t.availableCash) ? t.availableCash : 0;
+                        return `
+                            <tr class="market-row" style="opacity: ${t.connected ? 1 : 0.6}" id="row-${t.id}">
+                                <td style="width: 200px;"><input type="text" value="${t.name || t.id}" id="name-input-${t.id}" class="host-input" /></td>
+                                <td style="width: 150px;"><input type="text" value="${t.password || '---'}" id="pass-input-${t.id}" class="host-input" style="font-family: 'JetBrains Mono', monospace;" /></td>
+                                <td style="text-align: right; font-weight:800; font-size: 1.1rem; color: var(--highlight);">
+                                    ${avail.toFixed(2)}
+                                    <div style="margin-top: 4px;">
+                                        <button onclick="promptAdjust('${t.id}')" class="small-label" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; text-decoration:underline;">ADJUST CASH</button>
+                                    </div>
+                                </td>
+                                <td style="text-align: center;"><button class="btn btn-outline" style="padding: 10px 15px; font-weight: 800;" onclick="updateTeam('${t.id}')">SAVE</button></td>
+                                <td style="text-align: center;"><span class="small-label" style="color:${t.connected ? 'var(--positive)':'var(--negative)'}; border: 1px solid currentColor; padding: 2px 8px; border-radius: 4px;">${t.connected ? 'ONLINE':'OFFLINE'}</span></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                const logs = document.getElementById('event-logs');
+                if (logs) {
+                    logs.innerHTML = gameState.logs.slice(-25).reverse().map(l => {
+                        const msg = typeof l === 'string' ? l : (l.message || JSON.stringify(l));
+                        const isSystem = (l && typeof l === 'object' && l.type === 'system');
+                        const style = isSystem ? 'color: var(--highlight); opacity: 0.9;' : 'opacity: 0.6;';
+                        return `<div class="small-label" style="font-size:0.75rem; border-bottom:1px solid rgba(255,255,255,0.03); padding: 0.4rem 0; ${style}">${msg}</div>`;
+                    }).join('');
+                }
+
+                // Populate jump grid once
+                const jGrid = document.getElementById('jump-grid');
+                if (jGrid && jGrid.children.length === 0) {
+                     for (let r = 1; r <= 7; r++) {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-outline';
+                        btn.style = 'padding: 1.25rem 0.5rem; font-weight: 800; border-color: rgba(255,255,255,0.05);';
+                        btn.innerText = `R${r}`;
+                        btn.onclick = () => jumpRound(r);
+                        jGrid.appendChild(btn);
+                    }
+                }
+
+                // Populate Reassignment Selectors
+                const aSel = document.getElementById('asset-selector-assign');
+                const tSel = document.getElementById('team-selector-assign');
+                if (aSel && aSel.children.length <= 1) {
+                    aSel.innerHTML = '<option value="">SELECT ASSET</option>';
+                    Object.values(gameState.assets).sort((a,b) => a.id.localeCompare(b.id)).forEach(a => {
+                        const opt = document.createElement('option');
+                        opt.value = a.id; 
+                        opt.innerText = `${a.name.toUpperCase()} [MARKET TEMPLATE]`;
+                        aSel.appendChild(opt);
+                    });
+                }
+                if (tSel && tSel.children.length <= 1) {
+                    tSel.innerHTML = '<option value="">SELECT TEAM</option>';
+                    Object.values(gameState.teams).sort((a,b) => a.id.localeCompare(b.id)).forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.innerText = (t.name || t.id).toUpperCase();
+                        tSel.appendChild(opt);
+                    });
+                }
+
+            } catch (err) { console.error("Host UpdateUI Error:", err); }
+        };
+    </script>
+</body>
+</html>

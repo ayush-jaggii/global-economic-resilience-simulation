@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adhikshana LIVE | Global Resilience Broadcast</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .leaderboard-column.multi-col .team-row {
+            border-radius: 5px;
+            padding: 0 0.7rem;
+        }
+
+        .leaderboard-column.multi-col .cell-rank {
+            width: 42px;
+            font-size: 0.78rem;
+        }
+
+        .leaderboard-column.multi-col .cell-name {
+            width: 120px;
+            font-size: 0.72rem;
+            letter-spacing: 0;
+        }
+
+        .leaderboard-column.multi-col .cell-history {
+            flex: 1;
+            display: flex;
+            font-size: 0.58rem;
+            opacity: 0.82;
+            gap: 0.2rem;
+            justify-content: space-between;
+        }
+
+        .leaderboard-column.multi-col .history-round {
+            width: 20px;
+        }
+
+        .leaderboard-column.multi-col .history-current {
+            font-size: 0.68rem;
+        }
+
+        .leaderboard-column.multi-col .cell-gdp {
+            width: 68px;
+            font-size: 0.78rem;
+        }
+
+        .leaderboard-column.multi-col .cell-move {
+            width: 52px;
+            font-size: 0.64rem;
+        }
+    </style>
+</head>
+<body class="display-body">
+    <div id="toast-container"></div>
+    <div class="timer-bar-container"><div id="timer-bar" class="timer-bar-fill"></div></div>
+    <div id="waiting-screen" style="position: fixed; inset: 0; background: #000; z-index: 10000; display: none; align-items: center; justify-content: center; flex-direction: column;">
+        <img src="logo.png" alt="Adhikshana logo" style="height: 240px; width: auto; object-fit: contain; margin-bottom: 1.25rem; filter: drop-shadow(0 10px 28px rgba(0,0,0,0.6)); transform: translateX(-18px);" />
+        <h1 style="font-size: 5rem; font-weight: 900; color: #e2e8f0; letter-spacing: 1.2rem; margin: 0; opacity: 0.95; text-shadow: 0 0 20px rgba(59,130,246,0.35);">ADHIKSHANA 3.0</h1>
+        <p class="small-label" style="font-size: 1.2rem; margin-top: 2rem; opacity: 0.85; color: #cbd5e1; letter-spacing: 0.3rem;">SYSTEM STANDBY FOR BROADCAST INITIALIZATION</p>
+    </div>
+
+    <div id="display-signal-overlay" class="broadcast-overlay" style="display:none;">
+        <div class="broadcast-overlay-card signal-theme">
+            <p class="overlay-kicker">INTELLIGENCE BRIEFING</p>
+            <h2 id="display-signal-title" class="overlay-title"></h2>
+            <p id="display-signal-desc" class="overlay-description"></p>
+        </div>
+    </div>
+
+    <div id="display-crisis-overlay" class="broadcast-overlay" style="display:none;">
+        <div class="broadcast-overlay-card crisis-theme">
+            <p class="overlay-kicker crisis-kicker">BREAKING CRISIS</p>
+            <h2 id="display-crisis-name" class="overlay-title"></h2>
+            <p id="display-crisis-desc" class="overlay-description"></p>
+            <div id="display-crisis-impacts" class="overlay-impacts"></div>
+        </div>
+    </div>
+
+    <div id="display-end-overlay" style="position: fixed; inset: 0; z-index: 9800; display: none; align-items: center; justify-content: center; background: radial-gradient(circle at top, rgba(15,23,42,0.95), rgba(2,6,23,0.98)); padding: 3rem;">
+        <div class="surface" style="width:min(1100px,100%); padding:2.4rem; border:1px solid rgba(251,191,36,0.55); box-shadow:0 25px 100px rgba(0,0,0,0.65);">
+            <p class="small-label" style="color:var(--warning); letter-spacing:0.2em; margin-bottom:0.5rem;">FINAL LEADERBOARD</p>
+            <h1 style="font-size:2.8rem; margin-bottom:1rem;">🏆 MARKET SESSION CLOSED</h1>
+            <div id="display-end-top3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.8rem; margin-bottom:1.2rem;"></div>
+            <div id="display-end-top12" style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.6rem;"></div>
+        </div>
+    </div>
+
+    <div class="projector-container">
+        <!-- TOP BROADCAST BAR -->
+        <header class="top-bar-broadcast">
+            <div style="display:flex; gap: 2.5rem; align-items: baseline;">
+                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                    <span class="live-indicator"></span>
+                    <h1 style="font-size: 2.8rem; color: var(--primary); letter-spacing: 0.15em; font-weight: 800; margin: 0;">GLOBAL MARKETS</h1>
+                </div>
+                <p id="round-phase" style="font-size: 1.8rem; font-weight: 700; opacity: 0.9; margin: 0;"></p>
+            </div>
+            <div id="countdown-label" class="timer-large">00:00</div>
+        </header>
+
+        <!-- MAIN BROADCAST CONTENT -->
+        <div class="main-broadcast-grid">
+            <!-- LEADERBOARD (70%) -->
+            <section style="display: flex; flex-direction: column;">
+                <div id="signal-banner"></div>
+                
+                <div class="lb-header">
+                    <div class="lb-header-cell" style="width: 45px;">RANK</div>
+                    <div class="lb-header-cell" style="width: 210px;">TEAM</div>
+                    <div class="lb-header-cell" style="flex: 1; text-align: center;">ROUND HISTORY</div>
+                    <div class="lb-header-cell" style="width: 140px; text-align: right;">AVG GDP</div>
+                    <div class="lb-header-cell" style="width: 85px; text-align: right;">TREND</div>
+                </div>
+
+                <div id="leaderboard-root" class="leaderboard-column">
+                    <!-- Dynamic Rows with Hash Sync -->
+                </div>
+            </section>
+
+            <!-- LIVE FEED (30%) -->
+            <aside class="feed-column">
+                <section class="pulse-panel">
+                    <div class="pulse-head">
+                        <h2 class="pulse-title">⚡ MARKET PULSE</h2>
+                        <span id="hot-assets-count" class="pulse-count">0 LIVE</span>
+                    </div>
+                    <div id="hot-assets-display" class="hot-assets-display"></div>
+                </section>
+            </aside>
+        </div>
+
+        <div id="news-ticker">
+            <div id="ticker-content"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const teamRows = {};
+        let lastTickerHash = '';
+        let lastHotAssetsHash = '';
+
+        // Sync Clock override for color warnings
+        onTick = (elapsed, limit) => {
+            const countdown = document.getElementById('countdown-label');
+            if (countdown) {
+                const remaining = Math.max(0, Math.floor(limit - elapsed));
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                countdown.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+                
+                countdown.style.color = '#fff';
+                if (remaining < 10) countdown.style.color = 'var(--negative)';
+                else if (remaining < 25) countdown.style.color = 'var(--warning)';
+            }
+        };
+
+        updateUI = () => {
+            if (!gameState || !gameState.teams) return;
+            const wsc = document.getElementById('waiting-screen');
+            if (wsc) wsc.style.display = gameState.isGameStarted ? 'none' : 'flex';
+
+            // Reset local caches on hard restart
+            if (gameState.round === 1 && gameState.phase === 'waiting') {
+                lastTickerHash = '';
+            }
+
+            try {
+                // 1. Meta Info
+                const meta = document.getElementById('round-phase');
+                if (meta) meta.innerText = `ROUND ${gameState.round} • ${gameState.phase.toUpperCase()}`;
+
+                const isEnded = Boolean(gameState.isEnded || gameState.phase === 'ended');
+                const endOverlay = document.getElementById('display-end-overlay');
+                if (isEnded) {
+                    const standings = Array.isArray(gameState.finalStandings) ? gameState.finalStandings : [];
+                    const medals = ['🥇 GOLD', '🥈 SILVER', '🥉 BRONZE'];
+
+                    const top3El = document.getElementById('display-end-top3');
+                    if (top3El) {
+                        top3El.innerHTML = standings.slice(0, 3).map((s, idx) => `
+                            <div style="padding:0.9rem; border-radius:10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-left:5px solid ${idx===0?'#f59e0b':(idx===1?'#94a3b8':'#d97706')}; animation: slideInLog 0.45s ease ${idx*0.08}s both;">
+                                <p class="small-label" style="color:var(--warning); margin-bottom:0.25rem;">${medals[idx] || `#${idx+1}`}</p>
+                                <p style="font-size:1.15rem; font-weight:900;">${String(s.name || s.teamId || 'TEAM').toUpperCase()}</p>
+                                <p style="font-size:0.8rem; color:var(--text-secondary);">AVG GDP ${(s.avgGDP || 0).toFixed(2)} • CASH ₹${(s.cash || 0).toFixed(2)} Cr</p>
+                            </div>
+                        `).join('');
+                    }
+
+                    const top12El = document.getElementById('display-end-top12');
+                    if (top12El) {
+                        top12El.innerHTML = standings.slice(0, 12).map((s, idx) => `
+                            <div style="padding:0.55rem 0.7rem; border-radius:8px; background:rgba(255,255,255,0.025); border-left:3px solid ${idx < 3 ? '#f59e0b' : 'rgba(59,130,246,0.5)'}; animation: slideInLog 0.4s ease ${idx*0.04}s both;">
+                                <span style="font-weight:900; color:var(--highlight); margin-right:0.5rem;">#${s.rank}</span>
+                                <span style="font-weight:800;">${String(s.name || s.teamId || 'TEAM').toUpperCase()}</span>
+                                <span style="float:right; color:var(--text-secondary); font-family:'JetBrains Mono', monospace;">${(s.avgGDP || 0).toFixed(2)}</span>
+                            </div>
+                        `).join('');
+                    }
+
+                    if (endOverlay) endOverlay.style.display = 'flex';
+                } else if (endOverlay) {
+                    endOverlay.style.display = 'none';
+                }
+
+                const phase = gameState.phase;
+                const isSignal = phase === 'signal';
+                const isCrisis = phase === 'crisis';
+                const isAuction = phase === 'auction';
+                const isStrategyWindow = phase === 'results'; // CRITICAL FIX: Removed 'strategy' check (merged into results)
+
+                const mainGrid = document.querySelector('.main-broadcast-grid');
+                const tickerWrap = document.getElementById('news-ticker');
+                if (mainGrid) mainGrid.style.display = (isSignal || isCrisis || isEnded) ? 'none' : 'grid';
+                if (tickerWrap) tickerWrap.style.display = (isSignal || isEnded) ? 'none' : 'flex';
+
+                const signalOverlay = document.getElementById('display-signal-overlay');
+                const crisisOverlay = document.getElementById('display-crisis-overlay');
+                const signalTitle = document.getElementById('display-signal-title');
+                const signalDesc = document.getElementById('display-signal-desc');
+                const crisisName = document.getElementById('display-crisis-name');
+                const crisisDesc = document.getElementById('display-crisis-desc');
+                const crisisImpacts = document.getElementById('display-crisis-impacts');
+
+                if (signalOverlay) {
+                    const shouldShowSignal = isSignal && gameState.signal;
+                    if (shouldShowSignal) {
+                        if (signalOverlay.style.display === 'none') signalOverlay.style.display = 'flex';
+                        signalOverlay.classList.add('active');
+                        if (signalTitle) signalTitle.innerText = gameState.signal.title || 'Strategic Signal';
+                        if (signalDesc) signalDesc.innerText = gameState.signal.description || '';
+                    } else if (signalOverlay.classList.contains('active')) {
+                        signalOverlay.classList.remove('active');
+                        setTimeout(() => {
+                            if (!signalOverlay.classList.contains('active')) signalOverlay.style.display = 'none';
+                        }, 220);
+                    }
+                }
+
+                if (crisisOverlay) {
+                    const shouldShowCrisis = isCrisis && gameState.crisis;
+                    if (shouldShowCrisis) {
+                        if (crisisOverlay.style.display === 'none') crisisOverlay.style.display = 'flex';
+                        crisisOverlay.classList.add('active');
+                        if (crisisDesc) crisisDesc.innerText = gameState.crisis.description || '';
+                        if (crisisName) crisisName.innerText = gameState.crisis.name || 'Crisis';
+                        if (crisisImpacts) {
+                            crisisImpacts.innerHTML = Object.entries(gameState.crisis.impacts || {}).map(([sector, val]) => `
+                                <div class="overlay-impact-chip ${val > 0 ? 'pos' : 'neg'}">
+                                    <span>${sector.toUpperCase()}</span>
+                                    <strong>${val > 0 ? '+' : ''}${val}%</strong>
+                                </div>
+                            `).join('');
+                        }
+                    } else if (crisisOverlay.classList.contains('active')) {
+                        crisisOverlay.classList.remove('active');
+                        setTimeout(() => {
+                            if (!crisisOverlay.classList.contains('active')) crisisOverlay.style.display = 'none';
+                        }, 220);
+                    }
+                }
+
+                // 2. Compact Context Panel (auction + post-crisis phases)
+                const signalEl = document.getElementById('signal-banner');
+                if (isAuction && gameState.signal) {
+                    signalEl.innerHTML = `
+                        <div class="signal-compact">
+                            <div class="signal-compact-head">ACTIVE SIGNAL</div>
+                            <div class="signal-compact-title">${gameState.signal.title || 'Market Signal'}</div>
+                            <div class="signal-compact-desc">${gameState.signal.description || ''}</div>
+                        </div>
+                    `;
+                } else if (isStrategyWindow && gameState.crisis) {
+                    signalEl.innerHTML = `
+                        <div class="crisis-compact">
+                            <div class="signal-compact-head">CRISIS SUMMARY</div>
+                            <div class="signal-compact-title">${gameState.crisis.name}</div>
+                            <div class="signal-compact-desc">${gameState.crisis.description || ''}</div>
+                            <div class="crisis-compact-impacts">
+                                ${Object.entries(gameState.crisis.impacts || {}).map(([k,v]) => 
+                                    `<span class="${v>0?'pos':'neg'}">${k.toUpperCase()}: ${v>0?'+':''}${v}%</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    signalEl.innerHTML = '';
+                }
+
+                // 3. Leaderboard - Positional Animation + Hash Protection
+                const lbRoot = document.getElementById('leaderboard-root');
+                if (!lbRoot) return;
+                const lbHeader = document.querySelector('.lb-header');
+
+                // Canonical order: always trust server-assigned ranks.
+                const sorted = Object.values(gameState.teams).sort((a,b) => (a.rank || 9999) - (b.rank || 9999) || String(a.id || '').localeCompare(String(b.id || '')));
+
+                // Adaptive packing: switch to multi-column compact mode when vertical space is limited.
+                const availableH = Math.max(320, lbRoot.clientHeight || (window.innerHeight - 270));
+                const minDetailedRowH = 28;
+                const minCompactRowH = 23;
+                const teamCount = Math.max(1, sorted.length);
+                const needsCompact = (availableH / teamCount) < minDetailedRowH;
+                const minRowH = needsCompact ? minCompactRowH : minDetailedRowH;
+                const rowsPerCol = Math.max(1, Math.floor(availableH / minRowH));
+                const idealCols = Math.ceil(teamCount / rowsPerCol);
+
+                const gridGap = needsCompact ? 8 : 0;
+                const minColWidth = needsCompact ? 300 : 640;
+                const maxColsByWidth = Math.max(1, Math.floor((lbRoot.clientWidth + gridGap) / (minColWidth + gridGap)));
+                const columnCount = Math.max(1, Math.min(idealCols, maxColsByWidth));
+
+                const effectiveRowsPerCol = Math.ceil(teamCount / columnCount);
+                const rowH = Math.max(minRowH, Math.floor(availableH / effectiveRowsPerCol));
+                const compactMode = columnCount > 1;
+
+                lbRoot.classList.toggle('multi-col', compactMode);
+                if (lbHeader) lbHeader.style.display = compactMode ? 'none' : 'flex';
+
+                const rootWidth = lbRoot.clientWidth || 1;
+                const columnWidth = compactMode
+                    ? Math.max(220, Math.floor((rootWidth - ((columnCount - 1) * gridGap)) / columnCount))
+                    : rootWidth;
+
+                sorted.forEach((t, index) => {
+                    let row = teamRows[t.id];
+                    if (!row) {
+                        row = document.createElement('div');
+                        row.className = 'team-row';
+                        row.id = `row-${t.id}`;
+                        lbRoot.appendChild(row);
+                        teamRows[t.id] = row;
+                    }
+
+                    // Hash check to prevent unnecessary re-renders
+                    const historyRaw = Array.isArray(t.gdpHistory) ? t.gdpHistory : [];
+                    const history = historyRaw.slice(-7);
+                    while (history.length < 7) history.unshift(0);
+                    const hash = `${t.rank}|${t.avgGDP}|${t.gdp.toFixed(2)}|${t.previousRank}|${gameState.round}|${gameState.phase}|${compactMode}`;
+                    
+                    if (row.dataset.hash !== hash) {
+                        const move = (t.previousRank || 0) - (t.rank || 0);
+                        const moveClass = move > 0 ? 'move-up' : (move < 0 ? 'move-down' : 'move-none');
+                        const moveSym = move > 0 ? '↑ +' : (move < 0 ? '↓ ' : '—');
+                        
+                        row.classList.toggle('top-3', t.rank <= 3);
+                        row.classList.toggle('top-10', t.rank > 3 && t.rank <= 10);
+                        
+                        const latestIdx = Math.max(0, history.length - 1);
+                        const historyHtml = history.map((val, i) => {
+                            const isCurr = (i === latestIdx);
+                            return `<span class="history-round ${isCurr ? 'history-current' : ''}">${val > 0 ? val.toFixed(1) : '--'}</span>`;
+                        }).join('');
+
+                        row.innerHTML = `
+                            <div class="cell-rank">#${t.rank || index+1}</div>
+                            <div class="cell-name">${(t.name || "UNKNOWN").toUpperCase()}</div>
+                            <div class="cell-history">${historyHtml}</div>
+                            <div class="cell-gdp">${(Number(t.avgGDP) || 0).toFixed(2)}</div>
+                            <div class="cell-move ${moveClass}">${move === 0 ? '—' : moveSym + Math.abs(move)}</div>
+                        `;
+                        row.dataset.hash = hash;
+                    }
+
+                    const colIndex = Math.floor(index / effectiveRowsPerCol);
+                    const rowIndex = index % effectiveRowsPerCol;
+                    const translateX = compactMode ? colIndex * (columnWidth + gridGap) : 0;
+                    const translateY = rowIndex * rowH;
+
+                    row.style.width = `${Math.max(180, columnWidth - (compactMode ? 1 : 0))}px`;
+                    row.style.height = `${rowH - 2}px`;
+                    row.style.transform = `translate(${translateX}px, ${translateY}px)`;
+                });
+
+                // 4. Hot Assets Pulse (last 3 seconds)
+                const hotAssetsEl = document.getElementById('hot-assets-display');
+                const hotCountEl = document.getElementById('hot-assets-count');
+                if (hotAssetsEl) {
+                    const isAuctionLive = gameState.phase === 'auction';
+                    const now = Date.now();
+                    const hotMarketItems = [
+                        ...Object.values(gameState.assets || {}),
+                        ...(Array.isArray(gameState.boosters) ? gameState.boosters : [])
+                    ];
+                    const hotAssets = hotMarketItems
+                        .filter(a => isAuctionLive && !!a.highestBidder && now - (a.lastBidTime || 0) < 3000)
+                        .sort((a, b) => (b.lastBidTime || 0) - (a.lastBidTime || 0))
+                        .slice(0, 6);
+
+                    if (hotCountEl) hotCountEl.innerText = `${hotAssets.length} LIVE`;
+
+                    const hotHash = hotAssets.map(a => `${a.id}:${a.currentBid}:${a.highestBidder}:${a.lastBidTime || 0}`).join('|') + `:${gameState.phase}`;
+                    if (hotHash !== lastHotAssetsHash) {
+                        if (hotAssets.length === 0) {
+                            hotAssetsEl.style.opacity = '0.75';
+                            hotAssetsEl.innerHTML = '<div class="hot-assets-empty">No active bidding bursts right now</div>';
+                        } else {
+                            hotAssetsEl.innerHTML = hotAssets.map((a, index) => {
+                                const leader = gameState.teams[a.highestBidder]?.name || a.highestBidder;
+                                const sector = (a.type === 'booster' ? 'Booster' : (a.sector || 'Market')).toUpperCase();
+                                const freshClass = now - (a.lastBidTime || 0) < 1200 ? 'fresh' : '';
+                                return `
+                                    <div class="hot-asset-card ${freshClass}" style="animation-delay:${index * 45}ms;">
+                                        <div class="hot-asset-top">
+                                            <span class="hot-asset-sector">${sector}</span>
+                                            <span class="hot-asset-live-dot">LIVE</span>
+                                        </div>
+                                        <div class="hot-asset-name">${a.name.toUpperCase()}</div>
+                                        <div class="hot-asset-bid">${formatCr(a.currentBid || a.currentPrice)}</div>
+                                        <div class="hot-asset-leader">${leader.toUpperCase()} LEADING</div>
+                                    </div>
+                                `;
+                            }).join('');
+                            hotAssetsEl.style.opacity = '1';
+                        }
+                        lastHotAssetsHash = hotHash;
+                    }
+                }
+
+                // 6. News Ticker System
+                const tickerEl = document.getElementById('ticker-content');
+                if (tickerEl) {
+                    const MAX_TICKER_ITEMS = 8;
+                    const isGameLog = (log) => (typeof log === 'string' || log.type === 'game');
+                    const cleanLog = (log) => {
+                        let msg = typeof log === 'string' ? log : (log.message || JSON.stringify(log));
+                        msg = msg.replace(/^\[\d{2}:\d{2}\]\s+/, '');
+                        return msg.toUpperCase().replace(/ LEADS BID ON /, ' BID: ').replace(/ ACQUIRED /, ' → ').replace(/ LIQUIDATED /, ' LIQ: ');
+                    };
+
+                    const rawLogs = gameState.logs.filter(isGameLog).slice(-MAX_TICKER_ITEMS).map(l => `<span><b class="ticker-label trade">MARKET EVENT</b> ${cleanLog(l)}</span>`);
+                    
+                    const tickerMessages = [];
+                    if ((gameState.phase === 'signal' || gameState.phase === 'auction') && gameState.signal) {
+                        tickerMessages.push(`<span><b class="ticker-label signal">SIGNAL</b> ${String(gameState.signal.title || 'MARKET SIGNAL').toUpperCase()}</span>`);
+                    }
+
+                    if ((gameState.phase === 'crisis' || gameState.phase === 'results') && gameState.crisis) { // CRITICAL FIX: Removed 'strategy'
+                        tickerMessages.push(`<span><b class="ticker-label crisis">CRISIS</b> ${gameState.crisis.name.toUpperCase()} ACTIVE</span>`);
+                    }
+                    
+                    tickerMessages.push(...rawLogs);
+                    const finalItems = tickerMessages.slice(-MAX_TICKER_ITEMS);
+                    const newHash = finalItems.join('|');
+
+                    if (newHash !== lastTickerHash) {
+                        tickerEl.innerHTML = finalItems.join(' • ') + ' • ' + finalItems.join(' • '); // Seamless loop
+                        lastTickerHash = newHash;
+                        
+                        // Prevent speed distortion
+                        const baseSpeed = 80; // px/sec
+                        const contentWidth = tickerEl.scrollWidth / 2; // half because we double it
+                        const duration = contentWidth / baseSpeed;
+                        tickerEl.style.animationDuration = `${duration}s`;
+                    }
+                }
+            } catch (err) { console.error("UpdateUI Crash:", err); }
+        };
+
+        window.addEventListener('resize', () => updateUI());
+    </script>
+</body>
+</html>

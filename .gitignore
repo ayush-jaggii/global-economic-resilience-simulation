@@ -1,0 +1,9 @@
+# Dependency directories
+node_modules/
+
+# Local configuration and logs
+server_log.txt
+.DS_Store
+
+# Dynamic database / state backups
+backup.json

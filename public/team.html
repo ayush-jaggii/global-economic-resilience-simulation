@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adhikshana Trading Terminal</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .help-tip {
+            position: relative;
+            display: inline-grid;
+            place-items: center;
+            width: auto;
+            height: auto;
+            margin-left: 0.4rem;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 400;
+            line-height: 1;
+            vertical-align: middle;
+            transform: translateY(-1px);
+            cursor: help;
+            user-select: none;
+            outline: none;
+            flex-shrink: 0;
+            transition: color 120ms ease;
+            text-transform: none;
+        }
+
+        .help-tip:hover,
+        .help-tip:focus-visible {
+            color: var(--text-main);
+        }
+
+        .help-popover {
+            position: fixed;
+            left: 0;
+            top: 0;
+            min-width: 180px;
+            max-width: 260px;
+            padding: 0.45rem 0.55rem;
+            border-radius: 6px;
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            background: rgba(2, 6, 23, 0.97);
+            color: #e5e7eb;
+            font-size: 0.62rem;
+            line-height: 1.35;
+            letter-spacing: 0.02em;
+            text-transform: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            z-index: 12000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 120ms ease;
+            white-space: normal;
+            visibility: hidden;
+        }
+
+        .help-popover.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body style="padding: 1.5rem;">
+    <div class="timer-bar-container"><div id="timer-bar" class="timer-bar-fill"></div></div>
+    <div id="toast-container"></div>
+
+    <!-- CRISIS SIGNAL MODAL -->
+    <div id="signal-modal" class="signal-modal" style="display: none;">
+        <div class="signal-modal-content"></div>
+    </div>
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="flex-row justify-between align-center" style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
+        <div class="flex-row align-center" style="gap: 1.5rem;">
+            <div class="flex-row align-center" style="gap: 0.75rem; min-width: 0;">
+                <img src="logo.png" alt="Adhikshana logo" style="height: 40px; width: auto; object-fit: contain; border-radius: 4px; flex-shrink: 0; transform: translateY(-3px);" />
+                <h1 style="color: var(--primary); font-weight: 800; font-size: 1.5rem; letter-spacing: 0.1em; margin: 0; white-space: nowrap;">ADHIKSHANA 3.0: THE MARKET CHAOS EXCHANGE</h1>
+            </div>
+            <div id="connection-status" class="small-label" style="color: var(--negative); padding: 4px 10px; border: 1px solid currentColor; border-radius: 4px;">DISCONNECTED</div>
+        </div>
+        <div class="flex-row align-center" style="gap: 2rem;">
+            <div id="timer-label" class="big-num" style="font-size: 1.8rem; color: #fff;">00:00</div>
+            <button id="logout-btn" class="btn btn-outline" style="padding: 0.5rem 0.9rem; font-size: 0.65rem;">Logout</button>
+            <div class="text-right">
+                <h2 id="curr-team-name" style="font-weight: 800; font-size: 1.25rem; margin: 0;">UNAUTHORIZED</h2>
+                <p id="round-info" class="small-label" style="color: var(--primary); margin-top: 2px;">SEQUENCE -- • --</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="trading-container">
+        <!-- MARKET PANEL (70%) -->
+        <main class="market-panel">
+            <div style="position: sticky; top: 0; z-index: 100; margin-bottom: 2.5rem; background: #0b0f1a; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-subtle); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <div class="flex-row justify-between align-center m-b-1">
+                    <h2 style="font-size: 1.1rem; font-weight: 800; letter-spacing: 0.05em; color: var(--text-secondary);">ACTIVE PORTFOLIO<span class="help-tip" tabindex="0" data-help="Assets you currently own. You can sell only assets bought in earlier rounds.">ⓘ</span></h2>
+                    <div class="flex-row align-center" style="gap: 0.5rem;">
+                        <button id="portfolio-toggle" class="btn btn-outline" style="padding: 0.35rem 0.7rem; font-size: 0.62rem;">Show Portfolio</button>
+                        <span id="asset-count-badge" class="small-label" style="background: var(--bg-surface-light); padding: 4px 10px; border-radius: 20px;">0 ASSETS</span>
+                    </div>
+                </div>
+                <div id="portfolio-panel" class="portfolio-panel-expanded" style="max-height: 0; overflow-y: hidden; margin-top: 0;">
+                    <div id="portfolio-list" class="grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <p class="small-label" style="opacity: 0.4; padding: 1rem 0;">No assets synchronized with your terminal yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-row justify-between align-center m-b-2">
+                <h1 style="font-size: 1.5rem; font-weight: 800;">GLOBAL EXCHANGE<span class="help-tip" tabindex="0" data-help="Live market board. Bid during Auction phase and track leaders in real time.">ⓘ</span></h1>
+                <div id="tab-container" class="tab-container" style="display:flex; gap: 0.25rem;"></div>
+            </div>
+
+            <div id="market-view">
+                <div id="market-grid" class="market-grid"></div>
+            </div>
+
+            <div id="finance-view" style="display: none;">
+                <div id="finance-summary" class="finance-summary-grid"></div>
+                
+                <div class="surface" style="padding: 1.5rem; margin-bottom: 2rem;">
+                    <h3 class="small-label" style="margin-bottom: 1rem;">ROUND-BY-ROUND AUDIT<span class="help-tip" tabindex="0" data-help="Per-round finance summary from your transaction history.">ⓘ</span></h3>
+                    <div style="overflow-x: auto;">
+                        <table class="finance-table">
+                            <thead>
+                                <tr>
+                                    <th>ROUND</th>
+                                    <th>INFLOW</th>
+                                    <th>OUTFLOW</th>
+                                    <th>TAX INCOME</th>
+                                    <th>NET</th>
+                                    <th>CAPITAL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-history-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div class="surface" style="padding: 1.5rem;">
+                        <h3 class="small-label" style="margin-bottom: 1rem;">LAST ROUND TRANSACTIONS<span class="help-tip" tabindex="0" data-help="Chronological ledger entries such as buys, sells, tax income, and bid lock/releases.">ⓘ</span></h3>
+                        <div id="finance-tx-list" class="transaction-list"></div>
+                    </div>
+                    <div class="surface" style="padding: 1.5rem;">
+                        <h3 class="small-label" style="margin-bottom: 1rem;">CAPITAL FLOW VISUAL<span class="help-tip" tabindex="0" data-help="Shows the inflow vs outflow proportion for the latest settled round.">ⓘ</span></h3>
+                        <div id="finance-flow-visual" style="margin-top: 1rem;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- CONTROL SIDEBAR (30%) -->
+        <aside class="control-sidebar">
+            <div class="capital-block">
+                <p class="small-label" style="color: var(--highlight); margin-bottom: 0.5rem;">AVAILABLE FOR TRADING<span class="help-tip" tabindex="0" data-help="Free cash = Total cash minus locked bids. Locked cash is reserved for your current leading bids.">ⓘ</span></p>
+                <p id="cap-avail" class="capital-main">₹0.00 Cr</p>
+                <div class="capital-sub">
+                    <span>LOCKED: <b id="cap-locked" style="color: var(--text-main);">₹0.00</b></span>
+                    <span>TOTAL: <b id="cap-total" style="color: var(--text-main);">₹0.00</b></span>
+                </div>
+            </div>
+
+            <div class="status-stats">
+                <div class="stat-card">
+                    <p class="small-label" style="margin-bottom: 0.25rem;">GDP<span class="help-tip" tabindex="0" data-help="Average GDP is displayed here for performance tracking and leaderboard context.">ⓘ</span></p>
+                    <p id="gdp-val" style="font-size: 1.5rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--highlight);">0.00</p>
+                    <p id="rank-mvmt" style="font-size: 0.7rem; font-weight: 800;"></p>
+                </div>
+                <div class="stat-card">
+                    <p class="small-label" style="margin-bottom: 0.25rem;">GLOBAL RANK<span class="help-tip" tabindex="0" data-help="Server-calculated rank using average GDP ordering. Arrow reflects movement vs previous round.">ⓘ</span></p>
+                    <p id="rank-val" style="font-size: 1.5rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text-main);">#--</p>
+                </div>
+            </div>
+
+            <div class="flex-col" style="gap: 1rem;">
+                <div class="stat-card">
+                    <p class="small-label">TRADING RULES<span class="help-tip" tabindex="0" data-help="Quick constraints: max holdings, max per sector, and sell eligibility rules.">ⓘ</span></p>
+                    <div class="limit-counter">
+                        <span class="small-label" style="font-size: 0.6rem;">HOLDING CAP</span>
+                        <span class="small-label" style="font-size: 0.65rem; color: #fff; text-transform: none;">Max 5 assets (boosters excluded)</span>
+                    </div>
+                    <div class="limit-counter">
+                        <span class="small-label" style="font-size: 0.6rem;">SECTOR LIMIT</span>
+                        <span class="small-label" style="font-size: 0.65rem; color: #fff; text-transform: none;">Max 2 assets per sector</span>
+                    </div>
+                    <div class="limit-counter">
+                        <span class="small-label" style="font-size: 0.6rem;">SELL RULE</span>
+                        <span class="small-label" style="font-size: 0.65rem; color: #fff; text-transform: none;">Can sell only assets from previous rounds</span>
+                    </div>
+                </div>
+
+                <div id="crisis-terminal"></div>
+
+                <div class="stat-card active-bids-panel">
+                    <p id="active-bids-header" class="small-label" style="margin-bottom: 0.75rem;">ACTIVE BIDS<span class="help-tip" tabindex="0" data-help="Shows assets/boosters where your team is currently leading with locked capital.">ⓘ</span></p>
+                    <div id="active-bids-list" class="active-bids-list">
+                        <p class="small-label" style="opacity: 0.4; text-transform: none;">No active bids</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="small-label" style="margin-bottom: 1rem; opacity: 0.6;">TOP 10 COMPETITORS<span class="help-tip" tabindex="0" data-help="Mini leaderboard snapshot. Value shown is average GDP used for ranking.">ⓘ</span></h2>
+                    <div id="mini-leaderboard" class="flex-col mini-lb-board"></div>
+                </div>
+
+                <div>
+                    <h2 class="small-label" style="margin-bottom: 1rem; opacity: 0.6;">AUDIT TRAIL<span class="help-tip" tabindex="0" data-help="Recent simulation events and system messages relevant to all teams.">ⓘ</span></h2>
+                    <div id="event-logs" style="max-height: 150px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="news-ticker">
+        <div id="ticker-content"></div>
+    </div>
+
+    <div id="waiting-overlay" style="position: fixed; inset: 0; background: #020617; z-index: 4500; display: none; align-items: center; justify-content: center; flex-direction: column;">
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem 2.5rem; border: 1px solid rgba(59,130,246,0.35); border-radius: 12px; background: rgba(11,15,26,0.82); box-shadow: 0 20px 60px rgba(0,0,0,0.55);">
+            <img src="logo.png" alt="Adhikshana logo" style="height: 220px; width: auto; object-fit: contain; margin-bottom: 1rem; filter: drop-shadow(0 10px 28px rgba(0,0,0,0.55)); transform: translateX(-6px);" />
+            <h1 style="font-size: 2.5rem; font-weight: 900; opacity: 0.95; color: #e2e8f0; letter-spacing: 0.28rem; text-shadow: 0 0 18px rgba(59,130,246,0.28); text-align: center;">WAITING FOR INITIALISATION</h1>
+            <p class="small-label" style="margin-top: 0.9rem; opacity: 0.78; color: #cbd5e1; letter-spacing: 0.1rem; text-align: center;">SIMULATION STARTS UPON MODERATOR CLEARANCE</p>
+        </div>
+    </div>
+
+    <div id="game-ended-overlay" style="position: fixed; inset: 0; background: rgba(2,6,23,0.94); z-index: 4700; display: none; align-items: center; justify-content: center; padding: 2rem;">
+        <div class="surface" style="max-width: 760px; width: 100%; padding: 2.2rem; border: 1px solid rgba(251,191,36,0.5); background: linear-gradient(180deg, rgba(17,24,39,0.96), rgba(2,6,23,0.98)); box-shadow: 0 25px 80px rgba(0,0,0,0.55);">
+            <p class="small-label" style="color: var(--warning); letter-spacing: 0.18em; margin-bottom: 0.6rem;">SESSION CONCLUDED</p>
+            <h1 style="font-size: 2rem; font-weight: 900; margin-bottom: 1rem;">🏆 MARKET SESSION CLOSED</h1>
+            <div id="game-ended-summary" style="font-size: 1rem; color: var(--text-secondary); line-height: 1.8;"></div>
+            <div style="margin-top: 1.3rem;">
+                <p class="small-label" style="margin-bottom: 0.5rem;">TOP 3 TEAMS</p>
+                <div id="game-ended-top3" style="display: flex; flex-direction: column; gap: 0.55rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" style="position: fixed; inset: 0; background: var(--bg-main); z-index: 5000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+        <div class="surface" style="padding: 5rem 4rem; width: 480px; border: 1px solid var(--border-subtle); background: rgba(2, 6, 23, 0.95); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+            <div style="text-align: center; margin-bottom: 3.5rem;">
+                <img src="logo.png" alt="Adhikshana logo" style="height: 80px; width: auto; object-fit: contain; border-radius: 4px; margin-bottom: 1.5rem;" />
+                <p class="small-label" style="letter-spacing: 0.4rem; color: var(--primary); margin-bottom: 1rem; opacity: 0.8;">WELCOME TO</p>
+                <h1 style="font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; margin: 0; background: linear-gradient(135deg, #fff 0%, var(--primary) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">ADHIKSHANA 3.0</h1>
+                <p style="font-size: 0.8rem; margin-top: 0.5rem; letter-spacing: 0.1rem; color: var(--highlight); opacity: 0.8; font-weight: 700;">THE MARKET CHAOS EXCHANGE</p>
+            </div>
+
+            <div class="flex-col" style="gap: 1.25rem;">
+                <div class="flex-col" style="gap: 0.5rem;">
+                    <label class="small-label" style="font-size: 0.6rem; opacity: 0.4; padding-left: 0.5rem;">IDENTITY_NODE</label>
+                    <select id="team-selector" style="width: 100%; background: #000; color: white; padding: 1.25rem; border: 1px solid var(--border-subtle); font-weight: 700; border-radius: 4px; outline: none;">
+                        <option value="">SELECT TERMINAL ID</option>
+                    </select>
+                </div>
+
+                <div class="flex-col" style="gap: 0.5rem;">
+                    <label class="small-label" style="font-size: 0.6rem; opacity: 0.4; padding-left: 0.5rem;">AUTHENTICATION_KEY</label>
+                    <input type="password" id="pass-input" placeholder="••••••••" style="width: 100%; padding: 1.25rem; background: #000; border: 1px solid var(--border-subtle); color: white; text-align: center; font-weight: 700; border-radius: 4px; outline: none; letter-spacing: 0.5rem;">
+                </div>
+
+                <button id="login-btn" class="btn" style="width: 100%; padding: 1.5rem; margin-top: 1rem; font-weight: 800; border-radius: 4px; letter-spacing: 0.2rem;">ESTABLISH SYNC</button>
+            </div>
+
+            <div style="margin-top: 4rem; text-align: center;">
+                <p class="small-label" style="font-size: 0.7rem; opacity: 0.5; font-style: italic;">You will be instructed to login shortly</p>
+                <div style="width: 40px; height: 1px; background: var(--primary); margin: 1rem auto; opacity: 0.3;"></div>
+                <p style="font-size: 0.5rem; opacity: 0.3; letter-spacing: 0.1rem;">SECURE ENCRYPTED TERMINAL // BUILD 1.8.4-LTS</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const LOCAL_BID_INCREMENT = 0.05;
+
+        const applyOptimisticBidState = (entityId, entityType = 'asset') => {
+            if (!gameState || !teamId || !gameState.teams || gameState.phase !== 'auction' || gameState.isPaused || gameState.isEnded) return;
+
+            const me = gameState.teams[teamId];
+            if (!me) return;
+
+            const isBooster = entityType === 'booster';
+            const entity = isBooster
+                ? (gameState.boosters || []).find((b) => b && String(b.id) === String(entityId))
+                : gameState.assets?.[entityId];
+            if (!entity) return;
+
+            if (entity.highestBidder === teamId) {
+                showToast(isBooster ? 'YOU ARE ALREADY LEADING THIS BOOSTER BID' : 'YOU ARE ALREADY LEADING THIS BID');
+                return;
+            }
+
+            const currentBase = Number(entity.currentBid || entity.currentPrice || entity.basePrice || 0);
+            const nextBid = Number((entity.currentBid ? currentBase + LOCAL_BID_INCREMENT : currentBase).toFixed(4));
+            const available = Number(((me.cash || 0) - (me.lockedCash || 0)).toFixed(4));
+            if (!Number.isFinite(nextBid) || available < nextBid) return;
+
+            if (entity.highestBidder) {
+                const prev = gameState.teams[entity.highestBidder];
+                if (prev && Number.isFinite(entity.currentBid)) {
+                    prev.lockedCash = Number(Math.max(0, (prev.lockedCash || 0) - Number(entity.currentBid || 0)).toFixed(4));
+                }
+            }
+
+            entity.currentBid = nextBid;
+            entity.highestBidder = teamId;
+            entity.lastBidTime = Date.now();
+            me.lockedCash = Number(((me.lockedCash || 0) + nextBid).toFixed(4));
+
+            if (typeof updateUI === 'function') updateUI();
+        };
+
+        // Global command functions for onclick handlers
+        const placeBid = (assetId) => { 
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                applyOptimisticBidState(assetId, 'asset');
+                socket.send(JSON.stringify({ type: 'PLACE_BID', teamId, assetId })); 
+            }
+        };
+
+        const buyBooster = (boosterId) => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                applyOptimisticBidState(boosterId, 'booster');
+                socket.send(JSON.stringify({ type: 'BUY_BOOSTER', teamId, boosterId }));
+            }
+        };
+
+        const sellAsset = (assetId) => { 
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'SELL_ASSET', teamId, assetId })); 
+            }
+        };
+        
+        let lastTickerHash = '';
+        let lastRound = 0;
+        const teamSel = document.getElementById('team-selector');
+        const defaultTeamNames = [
+            'Neo4j',
+            'Compass',
+            'ADV',
+            'Upperups',
+            'Bomboloni',
+            'Arka',
+            'Envision',
+            'JMD',
+            'SleepDeprived',
+            'Team AKS',
+            'Futurepreneurs',
+            'Lannisters',
+            'Gareeb Economists',
+            'SavingPublicRyan',
+            'HAKUNA MA TATA',
+            'Pitch Masters',
+            'Spartans',
+            'All Izz Well',
+            'Cardin',
+            'xyz',
+            'Prime',
+            'Batman Buddies',
+            'Maverick',
+            'Starks',
+            'Synergy',
+            'Void',
+            'Capital trio',
+            'NeetiShastra'
+        ];
+
+        const populateSelector = () => {
+            if (!gameState || !gameState.teams) {
+                // Initial fallback
+                if (teamSel.options.length > 1) return;
+                for(let i=1; i<=30; i++){
+                    const tid = `team-${i.toString().padStart(2, '0')}`;
+                    const opt = document.createElement('option');
+                    opt.value = tid;
+                    opt.innerText = defaultTeamNames[i - 1] || `RESONANCE_${i.toString().padStart(2, '0')}`;
+                    teamSel.appendChild(opt);
+                }
+                return;
+            }
+            
+            // Sync with server names
+            const currentVal = teamSel.value;
+            teamSel.innerHTML = '<option value="">SELECT TERMINAL ID</option>';
+            Object.values(gameState.teams).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.innerText = (t.name || t.id).toUpperCase();
+                teamSel.appendChild(opt);
+            });
+            teamSel.value = currentVal;
+        };
+        
+        // Call initially
+        populateSelector();
+
+        const tabs = ['All', 'Food', 'Manufacturing', 'Finance', 'Trade'];
+        const tabContainer = document.getElementById('tab-container');
+        
+        // Create market tabs group
+        const marketGroup = document.createElement('div');
+        marketGroup.className = 'tab-group-market';
+        
+        tabs.forEach(tab => {
+            const btn = document.createElement('button');
+            btn.className = `tab-btn ${tab==='All'?'active':''}`;
+            btn.innerText = tab === 'Manufacturing' ? 'MFG' : tab.toUpperCase();
+            btn.dataset.tabKey = tab;
+            btn.onclick = () => setTab(tab);
+            marketGroup.appendChild(btn);
+        });
+        
+        tabContainer.appendChild(marketGroup);
+        
+        // Create Finance tab separately
+        const financeBtn = document.createElement('button');
+        financeBtn.className = 'tab-btn tab-btn-finance';
+        financeBtn.innerText = '📊 CASHFLOW';
+        financeBtn.dataset.tabKey = 'FinanceView';
+        financeBtn.onclick = () => setTab('FinanceView');
+        tabContainer.appendChild(financeBtn);
+
+        document.getElementById('login-btn').onclick = (e) => {
+            const teamId = teamSel.value;
+            const password = document.getElementById('pass-input').value;
+            if(!teamId || !password) return;
+            e.target.classList.add('btn-loading');
+            localStorage.setItem('sim_auth', JSON.stringify({ role: 'team', teamId, password }));
+            socket.send(JSON.stringify({ type: 'AUTH', role: 'team', teamId, password }));
+            setTimeout(() => e.target.classList.remove('btn-loading'), 3000); // Safety timeout
+        };
+
+        document.getElementById('logout-btn').onclick = () => {
+            localStorage.removeItem('sim_auth');
+            location.reload();
+        };
+
+        let isPortfolioCollapsed = false;
+        let portfolioUserOverride = false;
+        const portfolioToggleBtn = document.getElementById('portfolio-toggle');
+        if (portfolioToggleBtn) {
+            portfolioToggleBtn.onclick = () => {
+                portfolioUserOverride = true;
+                isPortfolioCollapsed = !isPortfolioCollapsed;
+                portfolioToggleBtn.innerText = isPortfolioCollapsed ? 'Show Portfolio' : 'Hide Portfolio';
+                const panel = document.getElementById('portfolio-panel');
+                if (panel) {
+                    panel.style.maxHeight = isPortfolioCollapsed ? '0' : '240px';
+                    panel.style.overflowY = isPortfolioCollapsed ? 'hidden' : 'auto';
+                    panel.style.marginTop = isPortfolioCollapsed ? '0' : '0.5rem';
+                }
+            };
+        }
+
+        const deriveFinanceHistoryFromTransactions = (team) => {
+            const txs = Array.isArray(team?.transactions) ? team.transactions : [];
+            const byRound = {};
+
+            txs.forEach((tx) => {
+                const round = Number(tx?.round);
+                if (!Number.isFinite(round) || round <= 0) return;
+                if (!byRound[round]) {
+                    byRound[round] = { round, inflow: 0, outflow: 0, taxIncome: 0, netChange: 0 };
+                }
+
+                const rawAmount = Number(tx?.amount ?? tx?.price ?? 0);
+                const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
+
+                if (tx.type === 'ASSET_SOLD') {
+                    byRound[round].inflow += amount;
+                } else if (tx.type === 'ASSET_BOUGHT' || tx.type === 'BOOSTER_PURCHASE') {
+                    byRound[round].outflow += amount;
+                } else if (tx.type === 'TAX_INCOME' || tx.type === 'TAX_DEBIT') {
+                    if (amount >= 0) byRound[round].inflow += amount;
+                    else byRound[round].outflow += Math.abs(amount);
+                    byRound[round].taxIncome += amount;
+                } else if (tx.type === 'CASH_ADJUSTMENT') {
+                    if (amount >= 0) byRound[round].inflow += amount;
+                    else byRound[round].outflow += Math.abs(amount);
+                }
+            });
+
+            const rounds = Object.keys(byRound).map(Number).sort((a, b) => a - b);
+            rounds.forEach((r) => {
+                byRound[r].inflow = Number(byRound[r].inflow.toFixed(4));
+                byRound[r].outflow = Number(byRound[r].outflow.toFixed(4));
+                byRound[r].taxIncome = Number(byRound[r].taxIncome.toFixed(4));
+                byRound[r].netChange = Number((byRound[r].inflow - byRound[r].outflow).toFixed(4));
+            });
+
+            const totalNet = rounds.reduce((sum, r) => sum + byRound[r].netChange, 0);
+            let openingBalance = Number(((team?.cash || 0) - totalNet).toFixed(4));
+            return rounds.map((round) => {
+                const row = byRound[round];
+                const closingBalance = Number((openingBalance + row.netChange).toFixed(4));
+                const resolved = {
+                    ...row,
+                    openingBalance,
+                    closingBalance
+                };
+                openingBalance = closingBalance;
+                return resolved;
+            });
+        };
+
+        let currentTab = 'All';
+        let helpPopover = null;
+
+        const ensureHelpPopover = () => {
+            if (helpPopover) return helpPopover;
+            helpPopover = document.createElement('div');
+            helpPopover.className = 'help-popover';
+            helpPopover.id = 'help-popover';
+            document.body.appendChild(helpPopover);
+            return helpPopover;
+        };
+
+        const positionHelpPopover = (el) => {
+            if (!helpPopover || !el) return;
+            const rect = el.getBoundingClientRect();
+            const margin = 10;
+            const popW = helpPopover.offsetWidth || 220;
+            const popH = helpPopover.offsetHeight || 60;
+
+            let left = rect.left + (rect.width / 2) - (popW / 2);
+            left = Math.max(margin, Math.min(left, window.innerWidth - popW - margin));
+
+            let top = rect.top - popH - margin;
+            if (top < margin) {
+                top = rect.bottom + margin;
+            }
+            if (top + popH > window.innerHeight - margin) {
+                top = window.innerHeight - popH - margin;
+            }
+
+            helpPopover.style.left = `${left}px`;
+            helpPopover.style.top = `${top}px`;
+        };
+
+        const showHelpPopover = (el) => {
+            const text = el?.getAttribute('data-help');
+            if (!text) return;
+            const pop = ensureHelpPopover();
+            pop.textContent = text;
+            pop.classList.add('visible');
+            positionHelpPopover(el);
+        };
+
+        const hideHelpPopover = () => {
+            if (!helpPopover) return;
+            helpPopover.classList.remove('visible');
+        };
+
+        const wireHelpTips = () => {
+            ensureHelpPopover();
+            document.querySelectorAll('.help-tip').forEach((el) => {
+                el.addEventListener('mouseenter', () => showHelpPopover(el));
+                el.addEventListener('mouseleave', hideHelpPopover);
+                el.addEventListener('focus', () => showHelpPopover(el));
+                el.addEventListener('blur', hideHelpPopover);
+                el.addEventListener('mousemove', () => positionHelpPopover(el));
+            });
+            window.addEventListener('resize', hideHelpPopover);
+            window.addEventListener('scroll', hideHelpPopover, true);
+        };
+
+        wireHelpTips();
+
+        const setTab = (tab) => {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                const isActive = b.dataset.tabKey === tab;
+                b.classList.toggle('active', isActive);
+            });
+            updateUI();
+        };
+
+        updateUI = () => {
+            const overlay = document.getElementById('login-overlay');
+            const wOverlay = document.getElementById('waiting-overlay');
+            const ticker = document.getElementById('news-ticker');
+            const tickerEl = document.getElementById('ticker-content');
+            populateSelector();
+
+            // Clear ticker when round changes
+            if (gameState && gameState.round !== lastRound) {
+                lastRound = gameState.round;
+                lastTickerHash = '';
+                if (tickerEl) tickerEl.innerHTML = '';
+            }
+
+            // Reset local caches on hard restart
+            if (gameState.round === 1 && gameState.phase === 'waiting') {
+                lastTickerHash = '';
+            }
+
+            if(role === 'team' && gameState && teamId) {
+                if(overlay) overlay.style.display = 'none';
+                const endedOverlay = document.getElementById('game-ended-overlay');
+                const isEnded = Boolean(gameState.isEnded || gameState.phase === 'ended');
+                const showWaiting = !gameState.isGameStarted;
+                if(wOverlay) wOverlay.style.display = (showWaiting && !isEnded) ? 'flex' : 'none';
+                if(ticker) ticker.style.display = (showWaiting || isEnded) ? 'none' : 'block';
+
+                if (endedOverlay) {
+                    if (isEnded) {
+                        const standings = Array.isArray(gameState.finalStandings) ? gameState.finalStandings : [];
+                        const summaries = gameState.teamSummaries || {};
+                        const meSummary = summaries[teamId] || {};
+                        const meStanding = standings.find((s) => s.teamId === teamId) || null;
+                        const myRank = meSummary.finalRank || meStanding?.rank || gameState.teams?.[teamId]?.rank || '--';
+                        const myAvg = Number((meSummary.avgGDP ?? meStanding?.avgGDP ?? gameState.teams?.[teamId]?.avgGDP ?? 0)).toFixed(2);
+                        const myCash = Number((meSummary.finalCash ?? meStanding?.cash ?? gameState.teams?.[teamId]?.cash ?? 0)).toFixed(2);
+
+                        const summaryEl = document.getElementById('game-ended-summary');
+                        if (summaryEl) {
+                            summaryEl.innerHTML = `
+                                <div>Your Rank: <b style="color: var(--warning);">#${myRank}</b></div>
+                                <div>Avg GDP: <b style="color: var(--highlight);">${myAvg}</b></div>
+                                <div>Final Cash: <b style="color: var(--positive);">₹${myCash} Cr</b></div>
+                            `;
+                        }
+
+                        const top3El = document.getElementById('game-ended-top3');
+                        if (top3El) {
+                            const medals = ['🥇 GOLD', '🥈 SILVER', '🥉 BRONZE'];
+                            top3El.innerHTML = standings.slice(0, 3).map((s, idx) => `
+                                <div style="padding: 0.6rem 0.8rem; border-radius: 8px; background: rgba(255,255,255,0.03); border-left: 4px solid ${idx===0?'#f59e0b':(idx===1?'#94a3b8':'#d97706')}; font-weight: 800;">
+                                    ${medals[idx] || `#${idx+1}`} ${String(s.name || s.teamId || 'TEAM').toUpperCase()}
+                                </div>
+                            `).join('') || '<p class="small-label" style="opacity:0.65; text-transform:none;">Final standings not available yet</p>';
+                        }
+
+                        endedOverlay.style.display = 'flex';
+                    } else {
+                        endedOverlay.style.display = 'none';
+                    }
+                }
+                
+                // Toggle between Market and Finance views
+                const marketView = document.getElementById('market-view');
+                const financeView = document.getElementById('finance-view');
+                if (currentTab === 'FinanceView') {
+                    if(marketView) marketView.style.display = 'none';
+                    if(financeView) financeView.style.display = 'block';
+                } else {
+                    if(marketView) marketView.style.display = 'block';
+                    if(financeView) financeView.style.display = 'none';
+                }
+                
+                // Render full-screen phase modal + pinned context panel
+                const signalModal = document.getElementById('signal-modal');
+                const signalContent = document.querySelector('.signal-modal-content');
+                if (signalModal && signalContent) {
+                    if (isEnded) {
+                        signalModal.classList.remove('signal-active');
+                        signalModal.style.display = 'none';
+                    }
+                    if (gameState.phase === 'signal' && gameState.signal) {
+                        signalContent.innerHTML = `
+                            <div class="signal-box signal-box-intel">
+                                <div class="signal-title">INTELLIGENCE BRIEFING</div>
+                                <div class="signal-name">${gameState.signal.title || 'Strategic Signal'}</div>
+                                <p class="signal-description">${gameState.signal.description || ''}</p>
+                            </div>
+                        `;
+                        signalModal.classList.remove('crisis-mode');
+                        if (!signalModal.classList.contains('signal-active')) {
+                            signalModal.classList.add('signal-active');
+                            signalModal.style.display = 'flex';
+                        }
+                    } else if (gameState.phase === 'crisis' && gameState.crisis) {
+                        signalContent.innerHTML = `
+                            <div class="signal-box signal-box-crisis">
+                                <div class="signal-title">BREAKING CRISIS</div>
+                                <div class="signal-name">${gameState.crisis.name}</div>
+                                <p class="signal-description">${gameState.crisis.description || ''}</p>
+                                <div class="signal-impacts">
+                                    ${Object.entries(gameState.crisis.impacts || {}).map(([k,v]) => 
+                                        `<span class="${v>0?'pos':'neg'}">${k.toUpperCase()}: ${v>0?'+':''}${v}%</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        `;
+                        signalModal.classList.add('crisis-mode');
+                        if (!signalModal.classList.contains('signal-active')) {
+                            signalModal.classList.add('signal-active');
+                            signalModal.style.display = 'flex';
+                        }
+                    } else {
+                        if (signalModal.classList.contains('signal-active')) {
+                            signalModal.classList.remove('signal-active');
+                            setTimeout(() => {
+                                signalModal.style.display = 'none';
+                            }, 300);
+                        }
+                    }
+                }
+            } else {
+                if(overlay) overlay.style.display = 'flex';
+                if(wOverlay) wOverlay.style.display = 'none';
+                if(ticker) ticker.style.display = 'none';
+                return;
+            }
+
+            const team = gameState.teams[teamId];
+            if(!team) return;
+
+            try {
+                const nameEl = document.getElementById('curr-team-name');
+                if(nameEl) nameEl.innerText = `Welcome ${(team.name || teamId).toUpperCase()}`;
+                
+                const roundEl = document.getElementById('round-info');
+                if(roundEl) roundEl.innerText = `${gameState.phase.toUpperCase()} SEQUENCE • ROUND ${gameState.round}`;
+                
+                const avail = Number(((team.cash || 0) - (team.lockedCash || 0)).toFixed(4));
+                const capAvailEl = document.getElementById('cap-avail');
+                if(capAvailEl) capAvailEl.innerText = formatCr(avail);
+                const capLockedEl = document.getElementById('cap-locked');
+                if(capLockedEl) capLockedEl.innerText = formatCr(team.lockedCash);
+                const capTotalEl = document.getElementById('cap-total');
+                if(capTotalEl) capTotalEl.innerText = formatCr(team.cash);
+
+                const gdpValEl = document.getElementById('gdp-val');
+                const avgGDP = Number(team.avgGDP || 0);
+
+                if(gdpValEl) gdpValEl.innerText = `${avgGDP.toFixed(2)}`;
+                const rankValEl = document.getElementById('rank-val');
+                if(rankValEl) rankValEl.innerText = `#${team.rank || '--'}`;
+                
+                const move = (team.previousRank || 0) - (team.rank || 0);
+                const mvmtEl = document.getElementById('rank-mvmt');
+                if(mvmtEl) {
+                    mvmtEl.innerText = move === 0 ? 'NO CHANGE' : `${move > 0 ? '↑' : '↓'} ${Math.abs(move)}`;
+                    mvmtEl.className = move > 0 ? 'rank-up' : (move < 0 ? 'rank-down' : 'small-label');
+                }
+                const aBadge = document.getElementById('asset-count-badge');
+                if(aBadge) aBadge.innerText = `${team.assets.length} ASSETS`;
+
+                const shouldClientApplyCrisisDisplay = Boolean(
+                    gameState.crisis &&
+                    ['crisis', 'results'].includes(gameState.phase) && // CRITICAL FIX: Removed 'strategy' (merged into results)
+                    Number(gameState.lastCrisisRound || 0) < Number(gameState.round || 0)
+                );
+                const getDisplayYield = (asset) => {
+                    const baseYield = Number(asset?.currentYield || 0);
+                    if (!shouldClientApplyCrisisDisplay) return baseYield;
+                    const impact = Number((gameState.crisis?.impacts || {})[asset?.sector] || 0);
+                    return Number((baseYield * (1 + impact / 100)).toFixed(4));
+                };
+
+                if (!portfolioUserOverride) {
+                    isPortfolioCollapsed = team.assets.length > 3;
+                }
+                const portfolioPanel = document.getElementById('portfolio-panel');
+                if (portfolioPanel) {
+                    portfolioPanel.style.maxHeight = isPortfolioCollapsed ? '0' : '200px';
+                    portfolioPanel.style.overflowY = isPortfolioCollapsed ? 'hidden' : 'auto';
+                    portfolioPanel.style.marginTop = isPortfolioCollapsed ? '0' : '0.5rem';
+                }
+                if (portfolioToggleBtn) {
+                    portfolioToggleBtn.innerText = isPortfolioCollapsed ? 'Show Portfolio' : 'Hide Portfolio';
+                }
+
+                const marketGrid = document.getElementById('market-grid');
+                if(marketGrid) {
+                    const rawBoosters = Array.isArray(gameState.boosters) ? gameState.boosters : [];
+                    const seenBoosterIds = new Set();
+                    const boosters = rawBoosters.filter((b) => {
+                        const key = String(b?.id || '');
+                        if (!key || seenBoosterIds.has(key)) return false;
+                        seenBoosterIds.add(key);
+                        return true;
+                    });
+                    const boosterCards = boosters
+                        .filter(b => gameState.phase === 'auction' && !b.owner)
+                        .map(b => {
+                            const nextBoosterBid = b.currentBid ? (b.currentBid + 0.05) : (b.basePrice || 0);
+                            const boosterEffect = Math.round(((b.multiplier || 1) - 1) * 100);
+                            const canBuyBooster =
+                                gameState.phase === 'auction' &&
+                                !gameState.isPaused &&
+                                b.highestBidder !== teamId &&
+                                avail >= nextBoosterBid;
+                            return `
+                                <div class="stock-card booster-card" id="row-${b.id}">
+                                    <div class="stock-card-header">
+                                        <p class="stock-card-title">${b.name}</p>
+                                        <span class="stock-state-label booster-label">BOOSTER</span>
+                                    </div>
+                                    <p class="stock-card-meta" style="color: var(--warning);">${String(b.boosterType || '').toUpperCase()}</p>
+                                    <p class="stock-card-data">EFFECT: <b>+${boosterEffect}% GDP (THIS ROUND)</b></p>
+                                    <p class="stock-card-data">CURRENT BID: <b>${formatCr(b.currentBid || b.basePrice || 0)}</b></p>
+                                    <p class="stock-card-meta">LEADER: <b>${(b.highestBidder ? (gameState.teams[b.highestBidder]?.name || b.highestBidder) : '--').toUpperCase()}</b></p>
+                                    <div style="text-align: right; margin-top: 0.8rem;">
+                                        <button class="btn bid-btn-ui" onclick="buyBooster('${b.id}')" ${canBuyBooster ? '' : 'disabled'}>
+                                            ${b.highestBidder === teamId ? 'LEADING' : `BID ${formatCr(nextBoosterBid)}`}
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        })
+                        .join('');
+
+                    const list = Object.values(gameState.assets)
+                        .filter(a => (currentTab === 'All' || a.sector === currentTab))
+                        .sort((a,b) => a.id.localeCompare(b.id));
+
+                    marketGrid.innerHTML = '';
+                    if (boosterCards && currentTab !== 'FinanceView') {
+                        marketGrid.innerHTML += boosterCards;
+                    }
+                    if (list.length === 0 && (!boosterCards || currentTab === 'FinanceView')) {
+                        marketGrid.innerHTML += '<p class="small-label" style="opacity: 0.4; padding: 1rem 0; text-transform: none;">No tradable assets available in this segment.</p>';
+                    }
+                    list.forEach(a => {
+                        const card = document.createElement('div');
+                        card.id = `row-${a.id}`;
+                        card.className = 'stock-card';
+                        const nextBid = a.currentBid ? (a.currentBid + 0.05) : a.currentPrice;
+                        const displayYield = getDisplayYield(a);
+                        const isAuctionLive = gameState.phase === 'auction' && !gameState.isEnded;
+                        const isHot = isAuctionLive && (Date.now() - (a.lastBidTime || 0) < 3000);
+                        const ownedCount = team.assets.filter(pa => (pa.assetId || pa.id) === a.id).length;
+                        const sectorOwnedCount = team.assets.filter(pa => {
+                            const ownedId = pa.assetId || pa.id;
+                            const ownedAsset = gameState.assets[ownedId];
+                            return ownedAsset && ownedAsset.sector === a.sector;
+                        }).length;
+                        
+                        // Disable logic for live auction model
+                        let disabledReason = null;
+                        if(gameState.phase !== 'auction') disabledReason = "CLOSED";
+                        else if(gameState.isPaused) disabledReason = "PAUSED";
+                        else if(team.assets.length >= 5) disabledReason = "MAX ASSETS";
+                        else if(ownedCount > 0) disabledReason = "ALREADY OWNED";
+                        else if(sectorOwnedCount >= 2) disabledReason = "SECTOR LIMIT";
+                        else if(avail < nextBid) disabledReason = "LOW CAPITAL";
+
+                        const sectorColors = { Food: 'var(--positive)', Manufacturing: 'var(--secondary)', Finance: 'var(--highlight)', Trade: 'var(--primary)' };
+                        const scolor = sectorColors[a.sector] || 'var(--text-muted)';
+
+                        const isLeading = isAuctionLive && a.highestBidder === teamId;
+                        card.classList.toggle('leading', isLeading);
+                        card.classList.toggle('hot', isHot);
+                        card.innerHTML = `
+                            <div class="stock-card-header">
+                                <p class="stock-card-title">${a.name}</p>
+                                ${isLeading ? '<span class="stock-state-label stock-state-leading">LEADING</span>' : (isHot ? '<span class="stock-state-label stock-state-hot">HOT</span>' : '')}
+                            </div>
+                            <p class="stock-card-meta" style="color: ${scolor};">${a.sector.toUpperCase()}</p>
+                            <p class="stock-card-meta">YIELD: <b style="color:${displayYield > 0.25?'var(--positive)':'var(--highlight)'}">${displayYield.toFixed(2)}</b></p>
+                            <p class="stock-card-meta">DEPRECIATION: <b style="color: var(--warning);">${(a.depreciation * 100).toFixed(0)}%</b></p>
+                            <p class="stock-card-data">CURRENT BID: <b style="font-family:'JetBrains Mono', monospace;">${formatCr(a.currentBid || a.currentPrice)}</b></p>
+                                <p class="stock-card-meta" style="margin-top: 0.15rem;">YOU OWN: <b>${ownedCount}</b> • LEADER: ${(a.highestBidder ? (gameState.teams[a.highestBidder]?.name || a.highestBidder) : '--').toUpperCase()}</p>
+                            <div style="text-align: right; margin-top: 0.8rem;">
+                                <button class="btn bid-btn-ui ${isLeading?'leading':''}" onclick="placeBid('${a.id}')" ${disabledReason ? `disabled data-tooltip="${disabledReason}"` : ''}>
+                                    ${isLeading ? 'LEADING' : `BID ${formatCr(nextBid)}`}
+                                </button>
+                            </div>
+                        `;
+                        marketGrid.appendChild(card);
+                    });
+                }
+
+                const activeBidsEl = document.getElementById('active-bids-list');
+                const activeBidsHeader = document.getElementById('active-bids-header');
+                if (activeBidsEl) {
+                    const isStrategyPhase = gameState.phase === 'results'; // CRITICAL FIX: Changed from 'strategy' to 'results'
+                    if (activeBidsHeader) {
+                        const headerText = isStrategyPhase ? 'BIDS WON' : 'ACTIVE BIDS';
+                        const helpText = isStrategyPhase 
+                            ? 'Assets/boosters won during auction. You will receive these in the results phase.' 
+                            : 'Shows assets/boosters where your team is currently leading with locked capital.';
+                        const tipEl = activeBidsHeader.querySelector('.help-tip');
+                        activeBidsHeader.childNodes[0].nodeValue = headerText;
+                        if (tipEl) {
+                            tipEl.setAttribute('data-help', helpText);
+                        }
+                    }
+                    
+                    const marketEntities = [
+                        ...((gameState && gameState.assets) ? Object.values(gameState.assets) : []),
+                        ...(Array.isArray(gameState.boosters) ? gameState.boosters : [])
+                    ];
+                    const activeBids = marketEntities
+                        .filter(a => a && a.highestBidder === teamId && a.currentBid)
+                        .sort((a, b) => (b.currentBid || b.currentPrice) - (a.currentBid || a.currentPrice));
+
+                    if (activeBids.length === 0) {
+                        const msg = !gameState ? 'Loading...' : (gameState.phase === 'auction' ? 'No active bids placed' : (gameState.phase === 'results' ? 'No bids won in this auction' : 'No active bids')); // CRITICAL FIX: Changed isStrategyPhase check to gameState.phase === 'results'
+                        activeBidsEl.innerHTML = `
+                            <p class="small-label" style="opacity: 0.4; text-transform: none; padding: 0.5rem 0;">
+                                ${msg}
+                            </p>
+                        `;
+                    } else {
+                        activeBidsEl.innerHTML = activeBids.map(a => `
+                            <div class="active-bid-item">
+                                <span class="active-bid-name">${a.name || 'Unknown'}${a.type === 'booster' ? ' [BOOSTER]' : ''}</span>
+                                <span class="active-bid-value">${formatCr(a.currentBid)}</span>
+                            </div>
+                        `).join('');
+                    }
+                }
+
+                const port = document.getElementById('portfolio-list');
+                if(port) {
+                    port.innerHTML = team.assets.length === 0 ? `<p class="small-label" style="opacity: 0.4; padding: 1rem 0;">No assets synchronized with your terminal yet</p>` : '';
+                    team.assets.forEach(oa => {
+                        const assetId = oa.assetId || oa.id;
+                        const ad = gameState.assets[assetId];
+                        if (!ad) return;
+                        const portfolioDisplayYield = getDisplayYield(ad);
+                        const purchaseRound = Number.isInteger(oa.purchaseRound) ? oa.purchaseRound : 0;
+                        const isSellPhase = gameState.phase === 'auction' || gameState.phase === 'results'; // CRITICAL FIX: Changed 'strategy' to 'results'
+                        const boughtThisRound = purchaseRound === gameState.round;
+                        const canSell = isSellPhase && !boughtThisRound;
+                        const div = document.createElement('div');
+                        div.className = 'portfolio-list-item';
+                        
+                        const sectorColors = {
+                            Food: 'var(--positive)',
+                            Manufacturing: 'var(--secondary)',
+                            Finance: 'var(--highlight)',
+                            Trade: 'var(--primary)'
+                        };
+                        const color = sectorColors[ad.sector] || 'var(--primary)';
+                        div.style.borderLeftColor = color;
+
+                        div.innerHTML = `
+                            <div style="flex:1;">
+                                <p class="small-label" style="font-size: 0.55rem; color: ${color}; opacity: 0.9; margin-bottom: 2px;">${ad.sector.toUpperCase()}</p>
+                                <p style="font-weight: 800; color: #fff; font-size: 0.95rem; line-height: 1.1;">${ad.name}</p>
+                                <p class="small-label" style="font-size: 0.6rem; opacity: 0.5; margin-top: 4px;">YIELD: <b>${portfolioDisplayYield.toFixed(2)}</b></p>
+                                <p class="small-label" style="font-size: 0.6rem; opacity: 0.5; margin-top: 2px;">DEPRECIATION: <b style="color: var(--warning);">${(ad.depreciation * 100).toFixed(0)}%</b></p>
+                                ${boughtThisRound ? '<p class="small-label" style="font-size: 0.6rem; color: var(--warning); margin-top: 4px; text-transform: none;">Cannot sell assets bought this round</p>' : ''}
+                            </div>
+                            <button class="btn btn-red" style="font-size: 0.6rem; padding: 6px 12px; height: fit-content;" onclick="sellAsset('${assetId}')" ${canSell ? '' : 'disabled'}>SELL ${formatCr(ad.currentPrice * 0.75)}</button>
+                        `;
+                        port.appendChild(div);
+                    });
+                }
+
+                const minLB = document.getElementById('mini-leaderboard');
+                if(minLB) {
+                    minLB.innerHTML = '';
+                    Object.values(gameState.teams).sort((a,b)=> (a.rank||0) - (b.rank||0)).slice(0, 10).forEach(t => {
+                        const m = (t.previousRank || 0) - (t.rank || 0);
+                        const sym = m === 0 ? '' : (m > 0 ? '↑' : '↓');
+                        const color = m > 0 ? 'var(--positive)' : (m < 0 ? 'var(--negative)' : 'var(--text-muted)');
+                        const div = document.createElement('div');
+                        div.className = 'mini-lb-row';
+                        if (t.id === teamId) div.classList.add('current-team');
+                        if ((t.rank || 99) <= 3) div.classList.add('top-3');
+                        div.innerHTML = `<span class="mini-lb-name"><span class="mini-lb-rank">#${t.rank}</span>${t.name || t.id}</span>
+                            <div class="text-right"><span class="mini-lb-val" style="color: ${t.id===teamId?'var(--highlight)':'var(--text-main)'}">${(Number(t.avgGDP) || 0).toFixed(2)}</span>
+                            <span class="mini-lb-move" style="color: ${color};">${sym} ${Math.abs(m) || ''}</span></div>`;
+                        minLB.appendChild(div);
+                    });
+                }
+
+                const ct = document.getElementById('crisis-terminal');
+                if (ct && gameState.phase === 'auction' && gameState.signal) {
+                    ct.innerHTML = `<div class="stat-card" style="border-bottom-color: var(--primary); background: rgba(59, 130, 246, 0.08);">
+                        <p class="small-label" style="color: var(--primary);">SIGNAL ACTIVE</p>
+                        <p style="font-weight:800; font-size: 1rem; margin-top: 0.25rem;">${gameState.signal.title}</p>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.35rem; text-transform: none;">${gameState.signal.description}</p>
+                    </div>`;
+                } else if (ct && (gameState.phase === 'results') && gameState.crisis) { // CRITICAL FIX: Removed 'strategy'
+                    const crisisImpacts = Object.entries(gameState.crisis.impacts || {}).map(([sector, value]) => {
+                        const val = Number(value || 0);
+                        const cls = val >= 0 ? 'pos' : 'neg';
+                        const sign = val > 0 ? '+' : '';
+                        return `<span class="${cls}" style="font-size: 0.68rem; font-weight: 800; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 0.2rem 0.5rem;">${sector.toUpperCase()}: ${sign}${val}%</span>`;
+                    }).join('');
+                    ct.innerHTML = `<div class="stat-card" style="border-bottom-color: var(--negative); background: rgba(239, 68, 68, 0.08);">
+                        <p class="small-label" style="color: var(--negative);">CRISIS IN EFFECT</p>
+                        <p style="font-weight:800; font-size: 1.05rem; margin-top: 0.25rem;">${gameState.crisis.name}</p>
+                        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.55rem;">
+                            ${crisisImpacts || '<span class="small-label" style="opacity:0.7; text-transform:none;">No sector impacts found</span>'}
+                        </div>
+                    </div>`;
+                } else if(ct) ct.innerHTML = '';
+
+                const isGameLog = (l) => (typeof l === 'string' || (l && l.type === 'game'));
+                const logPane = document.getElementById('event-logs');
+                if(logPane) {
+                    const publicLogs = gameState.logs.filter(isGameLog).slice(-8).reverse();
+                    logPane.innerHTML = publicLogs.map((l, i) => {
+                        const msg = typeof l === 'string' ? l : (l.message || JSON.stringify(l));
+                        return `<div class="small-label" style="opacity: ${1 - (i*0.12)}; border-bottom: 1px solid rgba(255,255,255,0.01); padding: 4px 0; font-size: 0.6rem; text-transform: none;">${msg}</div>`;
+                    }).join('');
+                }
+
+                const tickerEl = document.getElementById('ticker-content');
+                if (tickerEl) {
+                    const messages = [];
+                    if ((gameState.phase === 'signal' || gameState.phase === 'auction') && gameState.signal) {
+                        messages.push(`<span><b class="ticker-label signal">SIGNAL</b> ${String(gameState.signal.title || 'MARKET SIGNAL').toUpperCase()}</span>`);
+                    }
+                    if ((gameState.phase === 'crisis' || gameState.phase === 'results') && gameState.crisis) { // CRITICAL FIX: Removed 'strategy'
+                        const impacts = Object.entries(gameState.crisis.impacts).map(([s,v]) => `${s}: ${v>0?'+':''}${v}%`).join(" | ");
+                        messages.push(`<span><b class="ticker-label crisis">STRESS TEST</b> ${gameState.crisis.name}: ${impacts}</span>`);
+                    }
+                    const cleanLogForTicker = (log) => {
+                        let msg = typeof log === 'string' ? log : (log.message || JSON.stringify(log));
+                        msg = msg.replace(/^\[\d{2}:\d{2}\]\s+/, '');
+                        msg = msg.replace(/ leads bid on /, ' BID: ');
+                        msg = msg.replace(/ acquired /, ' → ');
+                        msg = msg.replace(/ liquidated /, ' LIQ: ');
+                        return msg.toUpperCase();
+                    };
+
+                    gameState.logs.filter(isGameLog).slice(-8).forEach(l => {
+                        messages.push(`<span><b class="ticker-label trade">MARKET EVENT</b> ${cleanLogForTicker(l)}</span>`);
+                    });
+                    const tickerHash = messages.join("");
+                    if (tickerHash !== lastTickerHash) { tickerEl.innerHTML = tickerHash + " &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; " + tickerHash; lastTickerHash = tickerHash; }
+                }
+                // 6. Finance Rendering (derived only from team.transactions)
+                if (currentTab === 'FinanceView') {
+                    const historical = deriveFinanceHistoryFromTransactions(team);
+                    const latest = historical.length > 0 ? historical[historical.length - 1] : null;
+                    const hasHistory = Boolean(latest);
+                    const displayRound = hasHistory ? latest.round : gameState.round;
+                    
+                    // Summary Grid
+                    const summaryEl = document.getElementById('finance-summary');
+                    if (summaryEl) {
+                        const netChange = hasHistory ? Number(latest.netChange ?? 0) : 0;
+                        const inflow = hasHistory ? Number(latest.inflow || 0) : 0;
+                        const outflow = hasHistory ? Number(latest.outflow || 0) : 0;
+                        const taxVal = hasHistory ? Number(latest.taxIncome || 0) : 0;
+                        const closingBalance = hasHistory ? Number(latest.closingBalance || team.cash) : team.cash;
+
+                        summaryEl.innerHTML = `
+                            <div class="finance-card">
+                                <p class="small-label">Current Capital</p>
+                                <p style="font-size: 1.5rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;">₹${closingBalance.toFixed(2)} Cr</p>
+                                <p style="font-size: 0.75rem; font-weight: 700; color: ${netChange >= 0 ? 'var(--positive)' : 'var(--negative)'}">
+                                    ${(netChange >= 0 ? '↑ +' : '↓ ') + Math.abs(netChange).toFixed(2)} Cr ${hasHistory ? 'last round' : 'pending'}
+                                </p>
+                            </div>
+                            <div class="finance-card">
+                                <p class="small-label">Round ${displayRound} Flows</p>
+                                <div class="flex-row justify-between" style="margin-top: 0.5rem;">
+                                    <div><p class="small-label" style="font-size:0.6rem; color:var(--positive);">INFLOW</p><p style="color:var(--positive); font-weight:800;">+₹${inflow.toFixed(2)}C</p></div>
+                                    <div class="text-right"><p class="small-label" style="font-size:0.6rem; color:var(--negative);">OUTFLOW</p><p style="color:var(--negative); font-weight:800;">-₹${outflow.toFixed(2)}C</p></div>
+                                </div>
+                            </div>
+                            <div class="finance-card">
+                                <p class="small-label">Tax Income</p>
+                                <p style="font-size: 1.5rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;">₹${taxVal.toFixed(2)} Cr</p>
+                                <p style="font-size: 0.75rem; font-weight: 700; color: var(--highlight);">
+                                    ${hasHistory ? 'credited R' + latest.round : 'awaiting results'}
+                                </p>
+                            </div>
+                        `;
+                    }
+
+                    // History Table
+                    const histBody = document.getElementById('finance-history-body');
+                    if (histBody) {
+                        histBody.innerHTML = historical.map(r => {
+                            return `
+                                <tr class="${r.round === gameState.round-1 ? 'latest-round' : ''}">
+                                    <td>R${r.round}</td>
+                                    <td style="color:var(--positive);">+${r.inflow.toFixed(2)}</td>
+                                    <td style="color:var(--negative);">-${r.outflow.toFixed(2)}</td>
+                                    <td style="color:var(--highlight);">+${Number(r.taxIncome || 0).toFixed(2)}</td>
+                                    <td style="font-weight:800; color:${r.netChange >= 0 ? 'var(--positive)' : 'var(--negative)'}">${r.netChange >= 0 ? '+' : ''}${r.netChange.toFixed(2)}</td>
+                                    <td>₹${r.closingBalance.toFixed(2)}</td>
+                                </tr>
+                            `;
+                        }).join('') || '<tr><td colspan="6" style="text-align:center; opacity:0.3; padding: 2rem;">Awaiting first results phase...</td></tr>';
+                    }
+
+                    // Full Transaction Log (all transactions, not just settled round)
+                    const txEl = document.getElementById('finance-tx-list');
+                    if (txEl) {
+                        const allTransactions = Array.isArray(team.transactions) ? [...team.transactions].reverse() : [];
+                        if (allTransactions.length > 0) {
+                            const txTypeColors = {
+                                'TAX_INCOME': 'var(--positive)',
+                                'TAX_DEBIT': 'var(--negative)',
+                                'ASSET_BOUGHT': 'var(--negative)',
+                                'ASSET_SOLD': 'var(--positive)',
+                                'BOOSTER_PURCHASE': 'var(--negative)',
+                                'BOOSTER_PURCHASED': 'var(--negative)',
+                                'CASH_ADJUSTMENT': 'var(--highlight)',
+                                'BID_LOCK': 'var(--highlight)',
+                                'BID_RELEASE': 'var(--warning)'
+                            };
+                            const txTypeLabels = {
+                                'TAX_INCOME': 'TAX INCOME',
+                                'TAX_DEBIT': 'TAX DEBIT',
+                                'ASSET_BOUGHT': 'PURCHASED ASSET',
+                                'ASSET_SOLD': 'LIQUIDATED ASSET',
+                                'BOOSTER_PURCHASE': 'PURCHASED BOOSTER',
+                                'BOOSTER_PURCHASED': 'PURCHASED BOOSTER',
+                                'CASH_ADJUSTMENT': 'CASH ADJUSTMENT',
+                                'BID_LOCK': 'BID PLACED',
+                                'BID_RELEASE': 'OUTBID'
+                            };
+                            txEl.innerHTML = '<div style="max-height: 400px; overflow-y: auto;">' + allTransactions.map(tx => `
+                                <div class="transaction-item" style="background: rgba(255,255,255,0.02); border-left: 3px solid ${txTypeColors[tx.type] || 'var(--text-muted)'}; padding: 0.6rem; margin-bottom: 0.5rem; border-radius: 2px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                                        <span style="font-weight: 800; color: ${txTypeColors[tx.type] || 'var(--text-muted)'}; font-size: 0.7rem;">${txTypeLabels[tx.type] || tx.type}</span>
+                                        ${(() => {
+                                            const isPositive = Number(tx.amount || 0) >= 0;
+                                            return `<span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${isPositive ? 'var(--positive)' : 'var(--negative)'};">${isPositive ? '+' : '-'}₹${Math.abs(Number(tx.amount || 0)).toFixed(2)} Cr</span>`;
+                                        })()}
+                                    </div>
+                                    <span style="font-size: 0.65rem; opacity: 0.7;">${tx.assetName || '---'}</span>
+                                    <span style="font-size: 0.6rem; opacity: 0.5; margin-left: 0.5rem;">R${tx.round}</span>
+                                </div>
+                            `).join('') + '</div>';
+                        } else {
+                            txEl.innerHTML = '<p class="small-label" style="opacity:0.3; text-align:center;">No transactions recorded yet</p>';
+                        }
+                    }
+
+                    // Flow Visual
+                    const flowEl = document.getElementById('finance-flow-visual');
+                    if (flowEl) {
+                        const inflow = hasHistory ? Number(latest.inflow || 0) : 0;
+                        const outflow = hasHistory ? Number(latest.outflow || 0) : 0;
+                        const total = inflow + outflow || 1;
+                        const inP = (inflow / total) * 100;
+                        const outP = (outflow / total) * 100;
+                        flowEl.innerHTML = `
+                            <div class="flex-row justify-between small-label" style="font-size:0.6rem; margin-bottom:0.5rem;">
+                                <span style="color:var(--positive);">INFLOW (${inP.toFixed(0)}%)</span>
+                                <span style="color:var(--negative);">OUTFLOW (${outP.toFixed(0)}%)</span>
+                            </div>
+                            <div class="flow-bar-container">
+                                <div class="flow-in" style="width: ${inP}%"></div>
+                                <div class="flow-out" style="width: ${outP}%"></div>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (err) { console.error("UI Update ERROR:", err); }
+        };
+    </script>
+</body>
+</html>

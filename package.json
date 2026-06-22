@@ -1,0 +1,12 @@
+{
+  "name": "global-economic-resilience-simulation",
+  "version": "1.0.0",
+  "description": "Production-grade, real-time multiplayer economic simulation",
+  "main": "server.js",
+  "dependencies": {
+    "ws": "^8.19.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
