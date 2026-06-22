@@ -6,6 +6,7 @@ A production-grade, highly concurrent, and fault-tolerant multiplayer macroecono
 * **Ayush Jaggi**
 * **Mohd Zain Peeradina**
 * **Advait Sharma**
+* **Khushi B Agarwal**
 
 ---
 
