@@ -1,8 +1,8 @@
-# 🌍 Real-Time Global Economic Resilience Simulation
+# Real-Time Global Economic Resilience Simulation
 
 A production-grade, highly concurrent, and fault-tolerant multiplayer macroeconomic simulation system. Designed to host 30+ simultaneous team connections in a high-stakes, real-time strategy environment, this engine models a sovereign state's economic cycle (Assets $\rightarrow$ GDP Generation $\rightarrow$ Fiscal Revenue $\rightarrow$ Reinvestment $\rightarrow$ Growth).
 
-## 👥 Authors & Creators
+## Authors & Creators
 * **Ayush Jaggi**
 * **Mohd Zain Peeradina**
 * **Advait Sharma**
@@ -10,7 +10,7 @@ A production-grade, highly concurrent, and fault-tolerant multiplayer macroecono
 
 ---
 
-## 🏗️ System Architecture & Data Flow
+## System Architecture & Data Flow
 
 The platform utilizes a centralized state-machine architecture with a decoupled client-server pattern. All transaction processing, mathematical validations, timers, and state mutations are executed strictly on the server to prevent client-side tampering.
 
@@ -43,7 +43,7 @@ The platform utilizes a centralized state-machine architecture with a decoupled 
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-### 💻 Technology Stack
+### Technology Stack
 * **Backend:** Native Node.js HTTP server and full-duplex WebSocket protocol (`ws`) for sub-millisecond network latency and high packet throughput.
 * **Frontend:** Responsive client applications built using Vanilla HTML5, CSS3 variables, and Javascript, utilizing modern glassmorphism UI design, live animations, and JetBrains Mono typography.
 * **Storage & Recovery:** State serialization engine backing up the global game graph every 3 seconds to a JSON database.
@@ -75,7 +75,7 @@ Executing a live multiplayer simulation for dozens of players simultaneously int
 
 ---
 
-## 📊 Economic Simulation Design & Algorithms
+## Economic Simulation Design & Algorithms
 
 The engine models a complete macroeconomic cycle with complex allocation constraints, taxation, and asset depreciation math.
 
@@ -114,7 +114,7 @@ $$\text{Revenue} = \text{Average GDP} \times \text{Tax Rate}$$
 
 ---
 
-## 🚀 Running the Project Locally
+## Running the Project Locally
 
 1. **Install Dependencies:**
    ```bash
